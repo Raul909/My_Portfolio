@@ -248,11 +248,19 @@ async function loadPhotoGallery() {
 
 function displayPhotos(imageUrls, container, username) {
     container.innerHTML = `
-        <div class="slideshow-container" style="position: relative; max-width: 1000px; margin: 0 auto;">
+        <div class="slideshow-container">
             <div class="slides-wrapper"></div>
-            <button class="slide-btn prev" onclick="changeSlide(-1)" style="position: absolute; top: 50%; left: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; padding: 16px; cursor: pointer; font-size: 18px; border-radius: 50%; z-index: 10;">❮</button>
-            <button class="slide-btn next" onclick="changeSlide(1)" style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; padding: 16px; cursor: pointer; font-size: 18px; border-radius: 50%; z-index: 10;">❯</button>
-            <div class="slide-dots" style="text-align: center; padding: 20px 0;"></div>
+            <button class="slide-btn prev" onclick="changeSlide(-1)">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            <button class="slide-btn next" onclick="changeSlide(1)">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </button>
+            <div class="slide-dots"></div>
         </div>
     `;
     
@@ -262,26 +270,26 @@ function displayPhotos(imageUrls, container, username) {
     imageUrls.forEach((url, index) => {
         const slide = document.createElement('div');
         slide.className = 'slide';
-        slide.style.display = index === 0 ? 'block' : 'none';
-        slide.innerHTML = `<img src="${url}" alt="Photography ${index + 1}" style="width: 100%; height: auto; display: block; border-radius: 10px;">`;
+        slide.style.opacity = index === 0 ? '1' : '0';
+        slide.innerHTML = `<img src="${url}" alt="Photography ${index + 1}" loading="lazy">`;
         wrapper.appendChild(slide);
         
         const dot = document.createElement('span');
         dot.className = 'dot';
-        dot.style.cssText = 'height: 12px; width: 12px; margin: 0 5px; background-color: #bbb; border-radius: 50%; display: inline-block; cursor: pointer; transition: 0.3s;';
-        if (index === 0) dot.style.backgroundColor = 'var(--primary)';
+        if (index === 0) dot.classList.add('active');
         dot.onclick = () => showSlide(index);
         dotsContainer.appendChild(dot);
     });
     
     window.currentSlide = 0;
     window.totalSlides = imageUrls.length;
-    
-    setInterval(() => changeSlide(1), 5000);
+    window.slideInterval = setInterval(() => changeSlide(1), 5000);
 }
 
 window.changeSlide = function(n) {
+    clearInterval(window.slideInterval);
     showSlide(window.currentSlide + n);
+    window.slideInterval = setInterval(() => changeSlide(1), 5000);
 }
 
 window.showSlide = function(n) {
@@ -293,11 +301,11 @@ window.showSlide = function(n) {
     else window.currentSlide = n;
     
     slides.forEach((slide, i) => {
-        slide.style.display = i === window.currentSlide ? 'block' : 'none';
+        slide.style.opacity = i === window.currentSlide ? '1' : '0';
     });
     
     dots.forEach((dot, i) => {
-        dot.style.backgroundColor = i === window.currentSlide ? 'var(--primary)' : '#bbb';
+        dot.classList.toggle('active', i === window.currentSlide);
     });
 }
 
