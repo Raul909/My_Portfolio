@@ -111,6 +111,13 @@ async function fetchGitHubRepos() {
             if (!repo.fork) {
                 const card = document.createElement('div');
                 card.className = 'project-card';
+                
+                // Add live demo URL for portfolio project
+                let liveUrl = repo.homepage;
+                if (repo.name.toLowerCase().includes('portfolio') || repo.name === 'My_Portfolio') {
+                    liveUrl = 'https://raul909portfolio.netlify.app/';
+                }
+                
                 card.innerHTML = `
                     <h3>${repo.name.replace(/-|_/g, ' ')}</h3>
                     <p>${repo.description || 'No description available'}</p>
@@ -120,7 +127,7 @@ async function fetchGitHubRepos() {
                     </div>
                     <div class="project-links">
                         <a href="${repo.html_url}" target="_blank">View Code →</a>
-                        ${repo.homepage ? `<a href="${repo.homepage}" target="_blank">Live Demo →</a>` : ''}
+                        ${liveUrl ? `<a href="${liveUrl}" target="_blank" class="live-demo-btn">Live Demo →</a>` : ''}
                     </div>
                 `;
                 container.appendChild(card);
