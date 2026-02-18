@@ -225,26 +225,54 @@ async function loadPhotoGallery() {
     const container = document.getElementById('photo-gallery');
     const username = 'sirius_shutterup';
     
-    const manualPhotos = [];
+    // Fallback manual photos if scraping fails
+    const manualPhotos = [
+        'https://scontent.cdninstagram.com/v/t51.29350-15/470925838_18483033476046032_7906086732838893088_n.jpg?stp=dst-jpg_e35&efg=eyJ2ZW5jb2RlX3RhZyI6ImltYWdlX3VybGdlbi4xNDQweDE4MDAuc2RyLmYyOTM1MC5kZWZhdWx0X2ltYWdlIn0&_nc_ht=scontent.cdninstagram.com&_nc_cat=111&_nc_ohc=example',
+    ];
     
     container.innerHTML = '<p style="text-align: center; color: var(--secondary); padding: 2rem;">Loading photos...</p>';
     
     async function fetchPhotos() {
         try {
-            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://www.instagram.com/${username}/`)}`;
+            // Method 1: Try direct fetch
+            let response = await fetch(`https://www.instagram.com/${username}/?__a=1&__d=dis`);
+            let data = await response.json();
+            
+            if (data?.graphql?.user?.edge_owner_to_timeline_media?.edges) {
+                const edges = data.graphql.user.edge_owner_to_timeline_media.edges;
+                const imageUrls = edges.map(edge => edge.node.display_url);
+                
+                if (imageUrls.length > 0) {
+                    displayPhotos(imageUrls, container, username);
+                    return true;
+                }
+            }
+        } catch (error) {
+            console.log('Method 1 failed, trying alternative:', error);
+        }
+        
+        try {
+            // Method 2: Try CORS proxy
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.instagram.com/${username}/`)}`;
             const response = await fetch(proxyUrl);
             const html = await response.text();
             
             const imageUrls = [];
-            const regex = /"display_url":"(https:\\u002F\\u002F[^"]+)"/g;
-            let match;
+            const patterns = [
+                /"display_url":"(https:[^"]+)"/g,
+                /"src":"(https:[^"]+instagram[^"]+)"/g,
+            ];
             
-            while ((match = regex.exec(html)) !== null) {
-                const url = match[1]
-                    .replace(/\\u002F/g, '/')
-                    .replace(/\\u0026/g, '&');
-                if (!imageUrls.includes(url)) {
-                    imageUrls.push(url);
+            for (const pattern of patterns) {
+                let match;
+                while ((match = pattern.exec(html)) !== null && imageUrls.length < 20) {
+                    const url = match[1]
+                        .replace(/\\u002F/g, '/')
+                        .replace(/\\u0026/g, '&')
+                        .replace(/\\\//g, '/');
+                    if (url.includes('instagram') && !imageUrls.includes(url)) {
+                        imageUrls.push(url);
+                    }
                 }
             }
             
@@ -252,32 +280,33 @@ async function loadPhotoGallery() {
                 displayPhotos(imageUrls, container, username);
                 return true;
             }
-            return false;
         } catch (error) {
-            console.log('Instagram fetch error:', error);
-            return false;
+            console.log('Method 2 failed:', error);
         }
+        
+        return false;
     }
     
     const success = await fetchPhotos();
     
     if (!success) {
-        if (manualPhotos.length > 0) {
+        if (manualPhotos.length > 0 && manualPhotos[0].includes('instagram')) {
             displayPhotos(manualPhotos, container, username);
         } else {
             container.innerHTML = `
                 <div style="text-align: center; padding: 2rem;">
                     <p>View my photography on <a href="https://www.instagram.com/sirius_shutterup/" target="_blank" style="color: var(--primary);">Instagram @sirius_shutterup</a></p>
+                    <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.7;">Due to Instagram restrictions, photos may not load automatically</p>
                 </div>
             `;
         }
     }
     
-    // Auto-refresh every 5 minutes
+    // Auto-refresh every 10 minutes
     setInterval(async () => {
         const updated = await fetchPhotos();
         if (updated) console.log('Instagram photos refreshed');
-    }, 300000);
+    }, 600000);
 }
 
 function displayPhotos(imageUrls, container, username) {

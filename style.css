@@ -105,6 +105,8 @@ body {
     z-index: 0;
     filter: brightness(0.5) saturate(1.2);
     transition: all 0.5s ease;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%);
 }
 
 .hero-overlay {
