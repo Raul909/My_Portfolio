@@ -447,17 +447,36 @@ section {
 .project-links {
     display: flex;
     gap: 1rem;
+    margin-top: 1rem;
 }
 
 .project-links a {
     color: var(--primary);
     text-decoration: none;
-    font-size: 0.9rem;
-    transition: color 0.3s;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(0,245,255,0.3);
 }
 
 .project-links a:hover {
-    color: var(--secondary);
+    color: white;
+    background: rgba(0,245,255,0.1);
+    border-color: var(--primary);
+    transform: translateX(5px);
+}
+
+.project-links a.live-demo-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+}
+
+.project-links a.live-demo-btn:hover {
+    box-shadow: 0 5px 20px rgba(102,126,234,0.5);
+    transform: translateY(-2px);
 }
 
 /* Videos Section */
