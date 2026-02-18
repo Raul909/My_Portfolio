@@ -220,12 +220,11 @@ function displayVideos(videoIds, container) {
 
 loadYouTubeVideos();
 
-// Instagram Photos - Real-time scraping with auto-refresh
+// Photo Gallery with Slideshow
 async function loadPhotoGallery() {
     const container = document.getElementById('photo-gallery');
     const username = 'sirius_shutterup';
     
-    // Fallback manual photos if scraping fails
     const manualPhotos = [
         'https://res.cloudinary.com/dgf8kbruq/image/upload/v1771448417/IMG_20240101_000125_Greatness-01_lwzgn4.jpg',
         'https://res.cloudinary.com/dgf8kbruq/image/upload/v1771448415/20230905_091920_v97py4.jpg',
@@ -238,77 +237,7 @@ async function loadPhotoGallery() {
         'https://res.cloudinary.com/dgf8kbruq/image/upload/v1771448408/20230925_144856_uexika.jpg',
     ];
     
-    container.innerHTML = '<p style="text-align: center; color: var(--secondary); padding: 2rem;">Loading photos...</p>';
-    
-    async function fetchPhotos() {
-        try {
-            // Method 1: Try direct fetch
-            let response = await fetch(`https://www.instagram.com/${username}/?__a=1&__d=dis`);
-            let data = await response.json();
-            
-            if (data?.graphql?.user?.edge_owner_to_timeline_media?.edges) {
-                const edges = data.graphql.user.edge_owner_to_timeline_media.edges;
-                const imageUrls = edges.map(edge => edge.node.display_url);
-                
-                if (imageUrls.length > 0) {
-                    displayPhotos(imageUrls, container, username);
-                    return true;
-                }
-            }
-        } catch (error) {
-            console.log('Method 1 failed, trying alternative:', error);
-        }
-        
-        try {
-            // Method 2: Try CORS proxy
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.instagram.com/${username}/`)}`;
-            const response = await fetch(proxyUrl);
-            const html = await response.text();
-            
-            const imageUrls = [];
-            const patterns = [
-                /"display_url":"(https:[^"]+)"/g,
-                /"src":"(https:[^"]+instagram[^"]+)"/g,
-            ];
-            
-            for (const pattern of patterns) {
-                let match;
-                while ((match = pattern.exec(html)) !== null && imageUrls.length < 20) {
-                    const url = match[1]
-                        .replace(/\\u002F/g, '/')
-                        .replace(/\\u0026/g, '&')
-                        .replace(/\\\//g, '/');
-                    if (url.includes('instagram') && !imageUrls.includes(url)) {
-                        imageUrls.push(url);
-                    }
-                }
-            }
-            
-            if (imageUrls.length > 0) {
-                displayPhotos(imageUrls, container, username);
-                return true;
-            }
-        } catch (error) {
-            console.log('Method 2 failed:', error);
-        }
-        
-        return false;
-    }
-    
-    const success = await fetchPhotos();
-    
-    if (!success) {
-        if (manualPhotos.length > 0 && manualPhotos[0].includes('instagram')) {
-            displayPhotos(manualPhotos, container, username);
-        } else {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 2rem;">
-                    <p>View my photography on <a href="https://www.instagram.com/sirius_shutterup/" target="_blank" style="color: var(--primary);">Instagram @sirius_shutterup</a></p>
-                    <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.7;">Due to Instagram restrictions, photos may not load automatically</p>
-                </div>
-            `;
-        }
-    }
+    displayPhotos(manualPhotos, container, username);
     
     // Auto-refresh every 10 minutes
     setInterval(async () => {
@@ -318,20 +247,57 @@ async function loadPhotoGallery() {
 }
 
 function displayPhotos(imageUrls, container, username) {
-    container.innerHTML = '';
+    container.innerHTML = `
+        <div class="slideshow-container" style="position: relative; max-width: 1000px; margin: 0 auto;">
+            <div class="slides-wrapper"></div>
+            <button class="slide-btn prev" onclick="changeSlide(-1)" style="position: absolute; top: 50%; left: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; padding: 16px; cursor: pointer; font-size: 18px; border-radius: 50%; z-index: 10;">❮</button>
+            <button class="slide-btn next" onclick="changeSlide(1)" style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; padding: 16px; cursor: pointer; font-size: 18px; border-radius: 50%; z-index: 10;">❯</button>
+            <div class="slide-dots" style="text-align: center; padding: 20px 0;"></div>
+        </div>
+    `;
+    
+    const wrapper = container.querySelector('.slides-wrapper');
+    const dotsContainer = container.querySelector('.slide-dots');
+    
     imageUrls.forEach((url, index) => {
-        const item = document.createElement('div');
-        item.className = 'gallery-item';
-        item.innerHTML = `
-            <img src="${url}" alt="Photography ${index + 1}" loading="lazy">
-            <div class="gallery-overlay">
-                <span style="color: white; font-size: 2rem;">📸</span>
-            </div>
-        `;
-        item.addEventListener('click', () => {
-            window.open(`https://www.instagram.com/${username}/`, '_blank');
-        });
-        container.appendChild(item);
+        const slide = document.createElement('div');
+        slide.className = 'slide';
+        slide.style.display = index === 0 ? 'block' : 'none';
+        slide.innerHTML = `<img src="${url}" alt="Photography ${index + 1}" style="width: 100%; height: auto; display: block; border-radius: 10px;">`;
+        wrapper.appendChild(slide);
+        
+        const dot = document.createElement('span');
+        dot.className = 'dot';
+        dot.style.cssText = 'height: 12px; width: 12px; margin: 0 5px; background-color: #bbb; border-radius: 50%; display: inline-block; cursor: pointer; transition: 0.3s;';
+        if (index === 0) dot.style.backgroundColor = 'var(--primary)';
+        dot.onclick = () => showSlide(index);
+        dotsContainer.appendChild(dot);
+    });
+    
+    window.currentSlide = 0;
+    window.totalSlides = imageUrls.length;
+    
+    setInterval(() => changeSlide(1), 5000);
+}
+
+window.changeSlide = function(n) {
+    showSlide(window.currentSlide + n);
+}
+
+window.showSlide = function(n) {
+    const slides = document.querySelectorAll('.slide');
+    const dots = document.querySelectorAll('.dot');
+    
+    if (n >= window.totalSlides) window.currentSlide = 0;
+    else if (n < 0) window.currentSlide = window.totalSlides - 1;
+    else window.currentSlide = n;
+    
+    slides.forEach((slide, i) => {
+        slide.style.display = i === window.currentSlide ? 'block' : 'none';
+    });
+    
+    dots.forEach((dot, i) => {
+        dot.style.backgroundColor = i === window.currentSlide ? 'var(--primary)' : '#bbb';
     });
 }
 
