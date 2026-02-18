@@ -123,59 +123,65 @@ async function fetchGitHubRepos() {
 
 fetchGitHubRepos();
 
-// YouTube Channel Videos - Fixed with multiple fallbacks
+// YouTube Channel Videos - Real-time scraping with auto-refresh
 async function loadYouTubeVideos() {
     const container = document.getElementById('youtube-videos');
-    const channelHandle = '@sirius_shutterup';
+    const channelId = 'UCjsOF9jvN-39lHfgEnIWEbw';
     
-    // Add your video IDs here for guaranteed display
-    const manualVideoIds = [
-        'dQw4w9WgXcQ', // Example - replace with your actual video IDs
-    ];
+    const manualVideoIds = [];
     
-    container.innerHTML = '<p style="text-align: center; grid-column: 1/-1; color: var(--secondary);">Loading videos...</p>';
+    container.innerHTML = '<p style="text-align: center; color: var(--secondary); padding: 2rem;">Loading videos...</p>';
     
-    try {
-        // Method 1: Try RSS feed via CORS proxy
-        const channelId = 'UCjsOF9jvN-39lHfgEnIWEbw';
-        const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-        const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rssUrl)}`;
-        
-        const response = await fetch(proxyUrl);
-        const text = await response.text();
-        
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(text, 'text/xml');
-        const entries = xml.querySelectorAll('entry');
-        
-        const videoIds = [];
-        entries.forEach(entry => {
-            const videoId = entry.querySelector('videoId');
-            if (videoId && videoIds.length < 6) {
-                videoIds.push(videoId.textContent);
+    async function fetchVideos() {
+        try {
+            const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rssUrl)}`;
+            
+            const response = await fetch(proxyUrl);
+            const text = await response.text();
+            
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(text, 'text/xml');
+            const entries = xml.querySelectorAll('entry');
+            
+            const videoIds = [];
+            entries.forEach(entry => {
+                const videoId = entry.querySelector('videoId');
+                if (videoId) {
+                    videoIds.push(videoId.textContent);
+                }
+            });
+            
+            if (videoIds.length > 0) {
+                displayVideos(videoIds, container);
+                return true;
             }
-        });
-        
-        if (videoIds.length > 0) {
-            displayVideos(videoIds, container);
-            return;
+            return false;
+        } catch (error) {
+            console.log('YouTube fetch error:', error);
+            return false;
         }
-        throw new Error('No videos in RSS');
-    } catch (error) {
-        console.log('RSS failed, trying manual IDs:', error);
-        
-        // Fallback to manual video IDs
-        if (manualVideoIds.length > 0 && manualVideoIds[0] !== 'dQw4w9WgXcQ') {
+    }
+    
+    const success = await fetchVideos();
+    
+    if (!success) {
+        if (manualVideoIds.length > 0) {
             displayVideos(manualVideoIds, container);
         } else {
             container.innerHTML = `
-                <div style="grid-column: 1/-1; text-align: center; padding: 2rem;">
+                <div style="text-align: center; padding: 2rem;">
                     <p>Check out my latest videos on <a href="https://www.youtube.com/@sirius_shutterup" target="_blank" style="color: var(--primary);">YouTube @sirius_shutterup</a></p>
-                    <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.7;">Add your video IDs to script.js line 120 for display</p>
                 </div>
             `;
         }
     }
+    
+    // Auto-refresh every 5 minutes
+    setInterval(async () => {
+        const updated = await fetchVideos();
+        if (updated) console.log('YouTube videos refreshed');
+    }, 300000);
 }
 
 function displayVideos(videoIds, container) {
@@ -183,14 +189,13 @@ function displayVideos(videoIds, container) {
     videoIds.forEach(videoId => {
         const card = document.createElement('div');
         card.className = 'video-card';
-        card.style.cursor = 'pointer';
         card.innerHTML = `
             <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" 
                  onerror="this.src='https://img.youtube.com/vi/${videoId}/hqdefault.jpg'"
                  alt="Video thumbnail" 
-                 style="width: 100%; height: 100%; object-fit: cover; border-radius: 15px; transition: all 0.3s;">
-            <div class="video-overlay" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); border-radius: 15px; transition: all 0.3s; opacity: 0;">
-                <svg width="68" height="48" viewBox="0 0 68 48">
+                 style="width: 100%; height: 100%; object-fit: cover; transition: all 0.3s;">
+            <div class="video-overlay" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); transition: all 0.3s; opacity: 0;">
+                <svg width="60" height="42" viewBox="0 0 68 48">
                     <path d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#fff"></path>
                     <path d="M 45,24 27,14 27,34" fill="#000"></path>
                 </svg>
@@ -215,56 +220,64 @@ function displayVideos(videoIds, container) {
 
 loadYouTubeVideos();
 
-// Instagram Photos - Fixed with CORS proxy
+// Instagram Photos - Real-time scraping with auto-refresh
 async function loadPhotoGallery() {
     const container = document.getElementById('photo-gallery');
     const username = 'sirius_shutterup';
     
-    // Add your photo URLs here for guaranteed display
-    const manualPhotos = [
-        // Example: 'https://i.imgur.com/xxxxx.jpg',
-    ];
+    const manualPhotos = [];
     
-    container.innerHTML = '<p style="text-align: center; grid-column: 1/-1; color: var(--secondary);">Loading photos...</p>';
+    container.innerHTML = '<p style="text-align: center; color: var(--secondary); padding: 2rem;">Loading photos...</p>';
     
-    try {
-        // Try CORS proxy
-        const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://www.instagram.com/${username}/`)}`;
-        const response = await fetch(proxyUrl);
-        const html = await response.text();
-        
-        const imageUrls = [];
-        const regex = /"display_url":"(https:\\u002F\\u002F[^"]+)"/g;
-        let match;
-        
-        while ((match = regex.exec(html)) !== null && imageUrls.length < 12) {
-            const url = match[1]
-                .replace(/\\u002F/g, '/')
-                .replace(/\\u0026/g, '&');
-            if (!imageUrls.includes(url)) {
-                imageUrls.push(url);
+    async function fetchPhotos() {
+        try {
+            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://www.instagram.com/${username}/`)}`;
+            const response = await fetch(proxyUrl);
+            const html = await response.text();
+            
+            const imageUrls = [];
+            const regex = /"display_url":"(https:\\u002F\\u002F[^"]+)"/g;
+            let match;
+            
+            while ((match = regex.exec(html)) !== null) {
+                const url = match[1]
+                    .replace(/\\u002F/g, '/')
+                    .replace(/\\u0026/g, '&');
+                if (!imageUrls.includes(url)) {
+                    imageUrls.push(url);
+                }
             }
+            
+            if (imageUrls.length > 0) {
+                displayPhotos(imageUrls, container, username);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.log('Instagram fetch error:', error);
+            return false;
         }
-        
-        if (imageUrls.length > 0) {
-            displayPhotos(imageUrls, container, username);
-            return;
-        }
-        throw new Error('No photos found');
-    } catch (error) {
-        console.log('Instagram scraping failed:', error);
-        
+    }
+    
+    const success = await fetchPhotos();
+    
+    if (!success) {
         if (manualPhotos.length > 0) {
             displayPhotos(manualPhotos, container, username);
         } else {
             container.innerHTML = `
-                <div style="grid-column: 1/-1; text-align: center; padding: 2rem;">
+                <div style="text-align: center; padding: 2rem;">
                     <p>View my photography on <a href="https://www.instagram.com/sirius_shutterup/" target="_blank" style="color: var(--primary);">Instagram @sirius_shutterup</a></p>
-                    <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.7;">Add image URLs to script.js line 180 for display</p>
                 </div>
             `;
         }
     }
+    
+    // Auto-refresh every 5 minutes
+    setInterval(async () => {
+        const updated = await fetchPhotos();
+        if (updated) console.log('Instagram photos refreshed');
+    }, 300000);
 }
 
 function displayPhotos(imageUrls, container, username) {
