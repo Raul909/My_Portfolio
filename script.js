@@ -1,3 +1,36 @@
+// Active navigation state with Intersection Observer
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.nav-link');
+
+const observerOptions = {
+    root: null,
+    rootMargin: '-20% 0px -70% 0px',
+    threshold: 0
+};
+
+const navObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${entry.target.id}`) {
+                    link.classList.add('active');
+                }
+            });
+        }
+    });
+}, observerOptions);
+
+sections.forEach(section => navObserver.observe(section));
+
+// Scroll progress indicator
+const scrollProgress = document.getElementById('scroll-progress');
+window.addEventListener('scroll', () => {
+    const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    const scrolled = (window.scrollY / windowHeight) * 100;
+    scrollProgress.style.width = scrolled + '%';
+});
+
 // Smooth navbar scroll effect
 window.addEventListener('scroll', () => {
     const navbar = document.getElementById('navbar');
@@ -38,13 +71,18 @@ function type() {
 
 type();
 
-// Smooth scroll
+// Smooth scroll with navbar offset
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href'));
         if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const navbarHeight = document.getElementById('navbar').offsetHeight;
+            const targetPosition = target.offsetTop - navbarHeight;
+            window.scrollTo({
+                top: targetPosition,
+                behavior: 'smooth'
+            });
         }
     });
 });
@@ -112,7 +150,6 @@ async function fetchGitHubRepos() {
                 const card = document.createElement('div');
                 card.className = 'project-card';
                 
-                // Add live demo URL for portfolio project
                 let liveUrl = repo.homepage;
                 if (repo.name.toLowerCase().includes('portfolio') || repo.name === 'My_Portfolio') {
                     liveUrl = 'https://raul909portfolio.netlify.app/';
@@ -123,11 +160,12 @@ async function fetchGitHubRepos() {
                     <p>${repo.description || 'No description available'}</p>
                     <div class="project-tags">
                         ${repo.language ? `<span class="tag">${repo.language}</span>` : ''}
-                        <span class="tag">⭐ ${repo.stargazers_count}</span>
+                        ${repo.stargazers_count > 0 ? `<span class="tag">⭐ ${repo.stargazers_count}</span>` : ''}
+                        ${repo.forks_count > 0 ? `<span class="tag">🔱 ${repo.forks_count}</span>` : ''}
                     </div>
                     <div class="project-links">
-                        <a href="${repo.html_url}" target="_blank">View Code →</a>
-                        ${liveUrl ? `<a href="${liveUrl}" target="_blank" class="live-demo-btn">Live Demo →</a>` : ''}
+                        <a href="${repo.html_url}" target="_blank" rel="noopener noreferrer">View Code →</a>
+                        ${liveUrl ? `<a href="${liveUrl}" target="_blank" rel="noopener noreferrer" class="live-demo-btn">Live Demo →</a>` : ''}
                     </div>
                 `;
                 container.appendChild(card);
@@ -338,31 +376,73 @@ window.showSlide = function(n) {
 
 loadPhotoGallery();
 
-// Contact form
-document.getElementById('contact-form').addEventListener('submit', (e) => {
+// Contact form with validation
+document.getElementById('contact-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    alert('Thank you for your message! I\'ll get back to you soon.');
-    e.target.reset();
+    
+    const form = e.target;
+    const formMessage = document.getElementById('form-message');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.textContent;
+    
+    // Get form data
+    const name = form.querySelector('input[name="name"]').value.trim();
+    const email = form.querySelector('input[name="email"]').value.trim();
+    const message = form.querySelector('textarea[name="message"]').value.trim();
+    
+    // Validation
+    if (!name || !email || !message) {
+        formMessage.textContent = 'Please fill in all fields.';
+        formMessage.className = 'form-message error';
+        return;
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        formMessage.textContent = 'Please enter a valid email address.';
+        formMessage.className = 'form-message error';
+        return;
+    }
+    
+    // Show loading state
+    submitBtn.textContent = 'Sending...';
+    submitBtn.disabled = true;
+    formMessage.style.display = 'none';
+    
+    // Simulate form submission (replace with actual backend call)
+    setTimeout(() => {
+        formMessage.textContent = 'Thank you for your message! I\'ll get back to you soon.';
+        formMessage.className = 'form-message success';
+        form.reset();
+        submitBtn.textContent = originalBtnText;
+        submitBtn.disabled = false;
+        
+        // Hide message after 5 seconds
+        setTimeout(() => {
+            formMessage.style.display = 'none';
+        }, 5000);
+    }, 1000);
 });
 
 // Intersection Observer for animations
-const observerOptions = {
+const animationObserverOptions = {
     threshold: 0.1,
     rootMargin: '0px 0px -100px 0px'
 };
 
-const observer = new IntersectionObserver((entries) => {
+const animationObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
             entry.target.style.opacity = '1';
             entry.target.style.transform = 'translateY(0)';
         }
     });
-}, observerOptions);
+}, animationObserverOptions);
 
 document.querySelectorAll('.about-card, .project-card, .video-card, .gallery-item').forEach(el => {
     el.style.opacity = '0';
     el.style.transform = 'translateY(20px)';
     el.style.transition = 'all 0.6s ease-out';
-    observer.observe(el);
+    animationObserver.observe(el);
 });

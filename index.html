@@ -4,41 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rahul Biswas - Developer • Editor • Photographer</title>
+    <meta name="description" content="Portfolio of Rahul Biswas - B.Tech student specializing in DSA, AI/ML, backend development, video editing, and photography. 200+ LeetCode problems solved.">
+    <meta name="keywords" content="Rahul Biswas, Developer, Video Editor, Photographer, Python, C++, Java, DSA, AI/ML, IIEST Shibpur">
+    <meta name="author" content="Rahul Biswas">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://raul909portfolio.netlify.app/">
+    <meta property="og:title" content="Rahul Biswas - Developer • Editor • Photographer">
+    <meta property="og:description" content="Portfolio showcasing coding projects, video editing work, and photography by Rahul Biswas">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Rahul Biswas - Developer • Editor • Photographer">
+    <meta name="twitter:description" content="Portfolio showcasing coding projects, video editing work, and photography">
+    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <nav id="navbar">
+    <div id="scroll-progress" aria-hidden="true"></div>
+    <nav id="navbar" role="navigation" aria-label="Main navigation">
         <div class="nav-content">
-            <div class="logo">RB</div>
+            <div class="logo" aria-label="Rahul Biswas">RB</div>
             <div class="nav-links">
-                <a href="#home">Home</a>
-                <a href="#about">About</a>
-                <a href="#code">Code</a>
-                <a href="#videos">Videos</a>
-                <a href="#photos">Photos</a>
-                <a href="#contact">Contact</a>
+                <a href="#home" class="nav-link">Home</a>
+                <a href="#about" class="nav-link">About</a>
+                <a href="#code" class="nav-link">Code</a>
+                <a href="#videos" class="nav-link">Videos</a>
+                <a href="#photos" class="nav-link">Photos</a>
+                <a href="#contact" class="nav-link">Contact</a>
             </div>
-            <div class="menu-toggle">☰</div>
+            <button class="menu-toggle" aria-label="Toggle mobile menu">☰</button>
         </div>
     </nav>
 
     <section id="home" class="hero">
-        <video id="bg-video" autoplay muted loop playsinline>
+        <video id="bg-video" autoplay muted loop playsinline aria-hidden="true">
             <source src="bg-video.mp4" type="video/mp4">
         </video>
-        <div class="hero-overlay"></div>
+        <div class="hero-overlay" aria-hidden="true"></div>
         <div class="hero-content">
             <h1 class="glitch" data-text="RAHUL BISWAS">RAHUL BISWAS</h1>
-            <div class="typing-container">
+            <div class="typing-container" role="status" aria-live="polite">
                 <span class="typing-text"></span>
-                <span class="cursor">|</span>
+                <span class="cursor" aria-hidden="true">|</span>
             </div>
             <div class="cta-buttons">
                 <a href="#code" class="btn btn-primary">View Projects</a>
                 <a href="#contact" class="btn btn-secondary">Get In Touch</a>
             </div>
         </div>
-        <div class="scroll-indicator">↓</div>
+        <a href="#about" class="scroll-indicator" aria-label="Scroll to about section">↓</a>
     </section>
 
     <section id="about" class="about">
@@ -144,10 +160,11 @@
                     </div>
                 </div>
                 <form class="contact-form" id="contact-form">
-                    <input type="text" placeholder="Your Name" required>
-                    <input type="email" placeholder="Your Email" required>
-                    <textarea placeholder="Your Message" rows="5" required></textarea>
+                    <input type="text" name="name" placeholder="Your Name" required aria-label="Your name">
+                    <input type="email" name="email" placeholder="Your Email" required aria-label="Your email">
+                    <textarea name="message" placeholder="Your Message" rows="5" required aria-label="Your message"></textarea>
                     <button type="submit" class="btn btn-primary">Send Message</button>
+                    <div id="form-message" class="form-message" role="alert" aria-live="polite"></div>
                 </form>
             </div>
         </div>
