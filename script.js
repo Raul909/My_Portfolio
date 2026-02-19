@@ -122,18 +122,18 @@ window.addEventListener('scroll', () => {
 
 // Mobile menu toggle
 const menuToggle = document.querySelector('.menu-toggle');
-const navLinks = document.querySelector('.nav-links');
+const navMenu = document.querySelector('.nav-links');
 
 menuToggle.addEventListener('click', () => {
-    navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
-    if (navLinks.style.display === 'flex') {
-        navLinks.style.position = 'absolute';
-        navLinks.style.top = '100%';
-        navLinks.style.left = '0';
-        navLinks.style.right = '0';
-        navLinks.style.flexDirection = 'column';
-        navLinks.style.background = 'rgba(10, 10, 10, 0.98)';
-        navLinks.style.padding = '1rem';
+    navMenu.style.display = navMenu.style.display === 'flex' ? 'none' : 'flex';
+    if (navMenu.style.display === 'flex') {
+        navMenu.style.position = 'absolute';
+        navMenu.style.top = '100%';
+        navMenu.style.left = '0';
+        navMenu.style.right = '0';
+        navMenu.style.flexDirection = 'column';
+        navMenu.style.background = 'rgba(10, 10, 10, 0.98)';
+        navMenu.style.padding = '1rem';
     }
 });
 
@@ -242,33 +242,24 @@ async function loadYouTubeVideos() {
 function displayVideos(videoIds, container) {
     container.innerHTML = '';
     videoIds.forEach(videoId => {
-        const card = document.createElement('div');
+        const card = document.createElement('a');
+        card.href = `https://www.youtube.com/watch?v=${videoId}`;
+        card.target = '_blank';
+        card.rel = 'noopener noreferrer';
         card.className = 'video-card';
+        card.style.cursor = 'pointer';
         card.innerHTML = `
             <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" 
                  onerror="this.src='https://img.youtube.com/vi/${videoId}/hqdefault.jpg'"
                  alt="Video thumbnail" 
-                 style="width: 100%; height: 100%; object-fit: cover; transition: all 0.3s;">
-            <div class="video-overlay" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); transition: all 0.3s; opacity: 0;">
-                <svg width="60" height="42" viewBox="0 0 68 48">
-                    <path d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#fff"></path>
-                    <path d="M 45,24 27,14 27,34" fill="#000"></path>
+                 style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;">
+            <div class="video-overlay" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); transition: all 0.3s;">
+                <svg width="68" height="48" viewBox="0 0 68 48" style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));">
+                    <path d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#f00"></path>
+                    <path d="M 45,24 27,14 27,34" fill="#fff"></path>
                 </svg>
             </div>
         `;
-        
-        card.addEventListener('mouseenter', () => {
-            card.querySelector('.video-overlay').style.opacity = '1';
-        });
-        
-        card.addEventListener('mouseleave', () => {
-            card.querySelector('.video-overlay').style.opacity = '0';
-        });
-        
-        card.addEventListener('click', () => {
-            window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
-        });
-        
         container.appendChild(card);
     });
 }
@@ -312,65 +303,17 @@ async function loadPhotoGallery() {
 }
 
 function displayPhotos(imageUrls, container, username) {
-    container.innerHTML = `
-        <div class="slideshow-container">
-            <div class="slides-wrapper"></div>
-            <button class="slide-btn prev" onclick="changeSlide(-1)">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-            </button>
-            <button class="slide-btn next" onclick="changeSlide(1)">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-            </button>
-            <div class="slide-dots"></div>
-        </div>
-    `;
-    
-    const wrapper = container.querySelector('.slides-wrapper');
-    const dotsContainer = container.querySelector('.slide-dots');
+    container.innerHTML = '';
+    container.className = 'gallery-grid';
     
     imageUrls.forEach((url, index) => {
-        const slide = document.createElement('div');
-        slide.className = 'slide';
-        slide.style.opacity = index === 0 ? '1' : '0';
-        slide.innerHTML = `<img src="${url}" alt="Photography ${index + 1}" loading="lazy">`;
-        wrapper.appendChild(slide);
-        
-        const dot = document.createElement('span');
-        dot.className = 'dot';
-        if (index === 0) dot.classList.add('active');
-        dot.onclick = () => showSlide(index);
-        dotsContainer.appendChild(dot);
-    });
-    
-    window.currentSlide = 0;
-    window.totalSlides = imageUrls.length;
-    window.slideInterval = setInterval(() => changeSlide(1), 5000);
-}
-
-window.changeSlide = function(n) {
-    clearInterval(window.slideInterval);
-    showSlide(window.currentSlide + n);
-    window.slideInterval = setInterval(() => changeSlide(1), 5000);
-}
-
-window.showSlide = function(n) {
-    const slides = document.querySelectorAll('.slide');
-    const dots = document.querySelectorAll('.dot');
-    
-    if (n >= window.totalSlides) window.currentSlide = 0;
-    else if (n < 0) window.currentSlide = window.totalSlides - 1;
-    else window.currentSlide = n;
-    
-    slides.forEach((slide, i) => {
-        slide.style.opacity = i === window.currentSlide ? '1' : '0';
-    });
-    
-    dots.forEach((dot, i) => {
-        dot.classList.toggle('active', i === window.currentSlide);
+        const item = document.createElement('a');
+        item.href = url;
+        item.target = '_blank';
+        item.rel = 'noopener noreferrer';
+        item.className = 'gallery-item';
+        item.innerHTML = `<img src="${url}" alt="Photography ${index + 1}" loading="lazy">`;
+        container.appendChild(item);
     });
 }
 
