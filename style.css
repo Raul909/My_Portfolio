@@ -681,6 +681,7 @@ section.in-view::before {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: block;
     transform-style: preserve-3d;
+    cursor: pointer;
 }
 
 .gallery-item::before {
@@ -693,6 +694,18 @@ section.in-view::before {
     z-index: 1;
 }
 
+.gallery-item::after {
+    content: '🔍';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 3rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 2;
+}
+
 .gallery-item:hover {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     border-color: var(--primary);
@@ -700,6 +713,10 @@ section.in-view::before {
 
 .gallery-item:hover::before {
     opacity: 1;
+}
+
+.gallery-item:hover::after {
+    opacity: 0.9;
 }
 
 .gallery-item img {
@@ -712,6 +729,125 @@ section.in-view::before {
 
 .gallery-item:hover img {
     transform: scale(1.1);
+}
+
+/* Lightbox */
+.lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.lightbox-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lightbox-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.8);
+    transition: opacity 0.15s ease;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: -50px;
+    right: 0;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 3rem;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    transition: transform 0.2s ease;
+    z-index: 10001;
+}
+
+.lightbox-close:hover {
+    transform: scale(1.2);
+}
+
+.lightbox-prev,
+.lightbox-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 2rem;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    z-index: 10001;
+}
+
+.lightbox-prev:hover,
+.lightbox-next:hover {
+    background: var(--primary);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.lightbox-prev {
+    left: 20px;
+}
+
+.lightbox-next {
+    right: 20px;
+}
+
+.lightbox-counter {
+    position: absolute;
+    bottom: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 1.2rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 0.5rem 1.5rem;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 768px) {
+    .lightbox-prev,
+    .lightbox-next {
+        padding: 0.5rem 1rem;
+        font-size: 1.5rem;
+    }
+    
+    .lightbox-prev {
+        left: 10px;
+    }
+    
+    .lightbox-next {
+        right: 10px;
+    }
+    
+    .lightbox-close {
+        top: -40px;
+        font-size: 2rem;
+    }
 }
 
 /* Slideshow Container */
