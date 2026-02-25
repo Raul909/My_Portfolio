@@ -385,13 +385,79 @@ function displayPhotos(imageUrls, container, username) {
     container.className = 'gallery-grid';
     
     imageUrls.forEach((url, index) => {
-        const item = document.createElement('a');
-        item.href = url;
-        item.target = '_blank';
-        item.rel = 'noopener noreferrer';
+        const item = document.createElement('div');
         item.className = 'gallery-item';
         item.innerHTML = `<img src="${url}" alt="Photography ${index + 1}" loading="lazy">`;
+        item.addEventListener('click', () => openLightbox(imageUrls, index));
         container.appendChild(item);
+    });
+}
+
+// Lightbox for full-quality photo viewing
+function openLightbox(images, startIndex) {
+    let currentIndex = startIndex;
+    
+    const lightbox = document.createElement('div');
+    lightbox.className = 'lightbox';
+    lightbox.innerHTML = `
+        <div class="lightbox-content">
+            <button class="lightbox-close" aria-label="Close">&times;</button>
+            <button class="lightbox-prev" aria-label="Previous">&#10094;</button>
+            <button class="lightbox-next" aria-label="Next">&#10095;</button>
+            <img src="${images[currentIndex]}" alt="Photo ${currentIndex + 1}">
+            <div class="lightbox-counter">${currentIndex + 1} / ${images.length}</div>
+        </div>
+    `;
+    
+    document.body.appendChild(lightbox);
+    document.body.style.overflow = 'hidden';
+    
+    const img = lightbox.querySelector('img');
+    const counter = lightbox.querySelector('.lightbox-counter');
+    
+    function updateImage() {
+        img.style.opacity = '0';
+        setTimeout(() => {
+            img.src = images[currentIndex];
+            counter.textContent = `${currentIndex + 1} / ${images.length}`;
+            img.style.opacity = '1';
+        }, 150);
+    }
+    
+    lightbox.querySelector('.lightbox-close').onclick = () => {
+        document.body.removeChild(lightbox);
+        document.body.style.overflow = '';
+    };
+    
+    lightbox.querySelector('.lightbox-prev').onclick = () => {
+        currentIndex = (currentIndex - 1 + images.length) % images.length;
+        updateImage();
+    };
+    
+    lightbox.querySelector('.lightbox-next').onclick = () => {
+        currentIndex = (currentIndex + 1) % images.length;
+        updateImage();
+    };
+    
+    lightbox.onclick = (e) => {
+        if (e.target === lightbox) {
+            document.body.removeChild(lightbox);
+            document.body.style.overflow = '';
+        }
+    };
+    
+    document.addEventListener('keydown', function handleKey(e) {
+        if (e.key === 'Escape') {
+            document.body.removeChild(lightbox);
+            document.body.style.overflow = '';
+            document.removeEventListener('keydown', handleKey);
+        } else if (e.key === 'ArrowLeft') {
+            currentIndex = (currentIndex - 1 + images.length) % images.length;
+            updateImage();
+        } else if (e.key === 'ArrowRight') {
+            currentIndex = (currentIndex + 1) % images.length;
+            updateImage();
+        }
     });
 }
 
