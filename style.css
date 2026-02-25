@@ -23,11 +23,58 @@ body {
     color: var(--light);
     overflow-x: hidden;
     line-height: 1.6;
+    cursor: none;
+    opacity: 0;
+    animation: fadeInPage 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes fadeInPage {
+    to {
+        opacity: 1;
+    }
+}
+
+.custom-cursor {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--primary);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    mix-blend-mode: difference;
+}
+
+.cursor-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--primary);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 10000;
+    transition: all 0.1s ease;
+}
+
+.custom-cursor.hover {
+    transform: scale(2);
+    background: rgba(0, 245, 255, 0.1);
 }
 
 /* Smooth scrolling */
 html {
     scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        scroll-behavior: smooth;
+    }
+    
+    * {
+        scroll-behavior: smooth;
+    }
 }
 
 /* Focus indicators for accessibility */
@@ -204,6 +251,8 @@ a:focus-visible {
     align-items: center;
     position: relative;
     overflow: hidden;
+    opacity: 1 !important;
+    transform: none !important;
 }
 
 #bg-video {
@@ -233,6 +282,8 @@ a:focus-visible {
 .hero-content {
     text-align: center;
     z-index: 2;
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .scroll-indicator {
@@ -302,12 +353,13 @@ a:focus-visible {
     font-size: 1.05rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
     text-decoration: none;
     display: inline-block;
     position: relative;
     overflow: hidden;
     letter-spacing: 0.5px;
+    transform-style: preserve-3d;
 }
 
 .btn-primary {
@@ -332,8 +384,8 @@ a:focus-visible {
 }
 
 .btn-primary:hover {
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 15px 40px rgba(102,126,234,0.6);
+    transform: translateY(-5px) scale(1.08);
+    box-shadow: 0 20px 50px rgba(102,126,234,0.7);
 }
 
 .btn-secondary {
@@ -350,8 +402,8 @@ a:focus-visible {
     background-image: linear-gradient(135deg, var(--primary), var(--secondary)), 
                       linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 15px 40px rgba(0,245,255,0.4);
+    transform: translateY(-5px) scale(1.08);
+    box-shadow: 0 20px 50px rgba(0,245,255,0.5);
 }
 
 .scroll-indicator {
@@ -371,6 +423,32 @@ a:focus-visible {
 /* Sections */
 section {
     padding: 5rem 2rem;
+    position: relative;
+    will-change: transform;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+section.in-view {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,245,255,0.3), transparent);
+    opacity: 0;
+    transition: opacity 0.8s ease;
+}
+
+section.in-view::before {
+    opacity: 1;
 }
 
 .container {
@@ -428,10 +506,11 @@ section {
     border-radius: 24px;
     backdrop-filter: blur(20px);
     border: 1px solid rgba(102,126,234,0.2);
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    transform-style: preserve-3d;
 }
 
 .about-card::before {
@@ -442,17 +521,35 @@ section {
     width: 100%;
     height: 100%;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-    transition: left 0.6s;
+    transition: left 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.about-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    padding: 2px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .about-card:hover::before {
     left: 100%;
 }
 
+.about-card:hover::after {
+    opacity: 1;
+}
+
 .about-card:hover {
-    transform: translateY(-15px) scale(1.02);
-    box-shadow: 0 20px 60px rgba(102,126,234,0.4);
-    border-color: rgba(0,245,255,0.5);
+    transform: translateY(-20px) scale(1.03);
+    box-shadow: 0 30px 80px rgba(102,126,234,0.5);
+    border-color: rgba(0,245,255,0.6);
 }
 
 .about-card .icon {
@@ -490,12 +587,28 @@ section {
     padding: 1.5rem;
     border: 1px solid rgba(0,217,255,0.15);
     backdrop-filter: blur(10px);
-    transition: all 0.3s;
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.project-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0,245,255,0.15), transparent 50%);
+    opacity: 0;
+    transition: opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.project-card:hover::before {
+    opacity: 1;
 }
 
 .project-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-10px) scale(1.02);
     border-color: var(--primary);
+    box-shadow: 0 20px 60px rgba(0,245,255,0.3);
 }
 
 .project-card h3 {
@@ -613,7 +726,7 @@ section {
     backdrop-filter: blur(10px);
     border: 1px solid rgba(0,217,255,0.2);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
     flex-shrink: 0;
 }
 
@@ -623,15 +736,15 @@ section {
     inset: 0;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
     opacity: 0;
-    transition: opacity 0.4s;
+    transition: opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1);
     z-index: 1;
     pointer-events: none;
 }
 
 .video-card:hover {
-    transform: translateY(-10px) scale(1.02);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-15px) scale(1.03);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), 0 0 50px rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
 }
 
 .video-card:hover::before {
@@ -664,7 +777,7 @@ section {
     backdrop-filter: blur(10px);
     border: 1px solid rgba(0,217,255,0.2);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
     display: block;
 }
 
@@ -674,15 +787,15 @@ section {
     inset: 0;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
     opacity: 0;
-    transition: opacity 0.4s;
+    transition: opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1);
     z-index: 1;
     pointer-events: none;
 }
 
 .gallery-item:hover {
-    transform: translateY(-10px) scale(1.02);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 217, 255, 0.3);
-    border-color: rgba(0, 217, 255, 0.6);
+    transform: translateY(-15px) scale(1.03);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), 0 0 50px rgba(0, 217, 255, 0.4);
+    border-color: rgba(0, 217, 255, 0.8);
 }
 
 .gallery-item:hover::before {
@@ -694,11 +807,11 @@ section {
     height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform 0.4s;
+    transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .gallery-item:hover img {
-    transform: scale(1.05);
+    transform: scale(1.1);
 }
 
 /* Slideshow Container */
