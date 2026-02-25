@@ -110,6 +110,34 @@ const sectionObserver = new IntersectionObserver((entries) => {
 
 sections.forEach(section => sectionObserver.observe(section));
 
+// 3D Tilt Effect for Cards
+function add3DTiltEffect() {
+    const cards = document.querySelectorAll('.project-card, .about-card, .gallery-item, .video-card');
+    
+    cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const rotateX = (y - centerY) / 10;
+            const rotateY = (centerX - x) / 10;
+            
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
+        });
+        
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateZ(0)';
+        });
+    });
+}
+
+// Apply 3D effect to existing cards
+add3DTiltEffect();
+
 // Navbar scroll effect
 let lastScroll = 0;
 const navbar = document.getElementById('navbar');
@@ -194,22 +222,33 @@ async function fetchGitHubRepos() {
                     liveUrl = 'https://raul909portfolio.netlify.app/';
                 }
                 
+                // Generate preview image URL
+                const previewImg = liveUrl ? `https://api.apiflash.com/v1/urltoimage?access_key=demo&url=${encodeURIComponent(liveUrl)}&width=600&height=400` : `https://opengraph.githubassets.com/1/${repo.full_name}`;
+                
                 card.innerHTML = `
-                    <h3>${repo.name.replace(/-|_/g, ' ')}</h3>
-                    <p>${repo.description || 'No description available'}</p>
-                    <div class="project-tags">
-                        ${repo.language ? `<span class="tag">${repo.language}</span>` : ''}
-                        ${repo.stargazers_count > 0 ? `<span class="tag">⭐ ${repo.stargazers_count}</span>` : ''}
-                        ${repo.forks_count > 0 ? `<span class="tag">🔱 ${repo.forks_count}</span>` : ''}
+                    <div class="project-preview">
+                        <img src="${previewImg}" alt="${repo.name}" onerror="this.src='https://opengraph.githubassets.com/1/${repo.full_name}'">
                     </div>
-                    <div class="project-links">
-                        <a href="${repo.html_url}" target="_blank" rel="noopener noreferrer">View Code →</a>
-                        ${liveUrl ? `<a href="${liveUrl}" target="_blank" rel="noopener noreferrer" class="live-demo-btn">Live Demo →</a>` : ''}
+                    <div class="project-content">
+                        <h3>${repo.name.replace(/-|_/g, ' ')}</h3>
+                        <p>${repo.description || 'No description available'}</p>
+                        <div class="project-tags">
+                            ${repo.language ? `<span class="tag">${repo.language}</span>` : ''}
+                            ${repo.stargazers_count > 0 ? `<span class="tag">⭐ ${repo.stargazers_count}</span>` : ''}
+                            ${repo.forks_count > 0 ? `<span class="tag">🔱 ${repo.forks_count}</span>` : ''}
+                        </div>
+                        <div class="project-links">
+                            <a href="${repo.html_url}" target="_blank" rel="noopener noreferrer">View Code →</a>
+                            ${liveUrl ? `<a href="${liveUrl}" target="_blank" rel="noopener noreferrer" class="live-demo-btn">Live Demo →</a>` : ''}
+                        </div>
                     </div>
                 `;
                 container.appendChild(card);
             }
         });
+        
+        // Add 3D tilt effect after cards are loaded
+        add3DTiltEffect();
     } catch (error) {
         container.innerHTML = '<p>Unable to load projects. Visit <a href="https://github.com/Raul909" target="_blank">GitHub</a></p>';
     }
