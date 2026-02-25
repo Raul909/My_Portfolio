@@ -1,40 +1,4 @@
-// Custom Cursor
-const cursor = document.createElement('div');
-cursor.className = 'custom-cursor';
-const cursorDot = document.createElement('div');
-cursorDot.className = 'cursor-dot';
-document.body.appendChild(cursor);
-document.body.appendChild(cursorDot);
-
-let mouseX = 0, mouseY = 0;
-let cursorX = 0, cursorY = 0;
-let dotX = 0, dotY = 0;
-
-document.addEventListener('mousemove', (e) => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-    dotX = e.clientX;
-    dotY = e.clientY;
-});
-
-function animateCursor() {
-    cursorX += (mouseX - cursorX) * 0.15;
-    cursorY += (mouseY - cursorY) * 0.15;
-    cursor.style.left = cursorX + 'px';
-    cursor.style.top = cursorY + 'px';
-    
-    cursorDot.style.left = dotX + 'px';
-    cursorDot.style.top = dotY + 'px';
-    
-    requestAnimationFrame(animateCursor);
-}
-animateCursor();
-
-// Hover effects for cursor
-document.querySelectorAll('a, button, .project-card, .about-card, .gallery-item, .video-card').forEach(el => {
-    el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
-    el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
-});
+// Custom Cursor - Removed for better performance
 
 // Active navigation state with Intersection Observer
 const sections = document.querySelectorAll('section[id]');
