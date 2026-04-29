@@ -176,7 +176,7 @@ async function fetchGitHubRepos() {
             // Determine live URL: prefer homepage, then known overrides
             const LIVE_URLS = {
                 'My_Portfolio': 'https://raul909portfolio.netlify.app/',
-                'tictactoe-multiplayer': 'https://tictactoe-multiplayer-kx9u.onrender.com/',
+                'Tic-Tac-Toe-Space': 'https://tictactoe-multiplayer-kx9u.onrender.com/',
             };
             let liveUrl = repo.homepage && repo.homepage.trim() ? repo.homepage.trim() : (LIVE_URLS[repo.name] || null);
             if (!liveUrl && repo.name.toLowerCase().includes('portfolio')) {
