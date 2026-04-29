@@ -173,19 +173,29 @@ async function fetchGitHubRepos() {
         container.innerHTML = '';
 
         filtered.forEach(repo => {
-            // Determine live URL: prefer homepage, fallback for portfolio repo
-            let liveUrl = repo.homepage && repo.homepage.trim() ? repo.homepage.trim() : null;
-            if (!liveUrl && (repo.name === 'My_Portfolio' || repo.name.toLowerCase().includes('portfolio'))) {
+            // Determine live URL: prefer homepage, then known overrides
+            const LIVE_URLS = {
+                'My_Portfolio': 'https://raul909portfolio.netlify.app/',
+                'tictactoe-multiplayer': 'https://tictactoe-multiplayer-kx9u.onrender.com/',
+            };
+            let liveUrl = repo.homepage && repo.homepage.trim() ? repo.homepage.trim() : (LIVE_URLS[repo.name] || null);
+            if (!liveUrl && repo.name.toLowerCase().includes('portfolio')) {
                 liveUrl = 'https://raul909portfolio.netlify.app/';
             }
+
+            // Preview: use screenshot for repos with a live URL, else GitHub OG image
+            const previewSrc = liveUrl
+                ? `https://image.thum.io/get/width/600/crop/400/noanimate/${encodeURIComponent(liveUrl)}`
+                : `https://opengraph.githubassets.com/1/${repo.full_name}`;
 
             const card = document.createElement('div');
             card.className = 'project-card';
             card.innerHTML = `
                 <div class="project-preview">
-                    <img src="https://opengraph.githubassets.com/1/${repo.full_name}"
+                    <img src="${previewSrc}"
                          alt="${repo.name} preview"
-                         loading="lazy">
+                         loading="lazy"
+                         onerror="this.src='https://opengraph.githubassets.com/1/${repo.full_name}'">
                 </div>
                 <div class="project-content">
                     <h3>${repo.name.replace(/[-_]/g, ' ')}</h3>
