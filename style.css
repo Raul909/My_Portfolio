@@ -6,6 +6,7 @@
 
 :root {
     --bg: #080808;
+    --bg-transparent: rgba(8, 8, 8, 0);
     --bg-card: rgba(18, 18, 18, 0.85);
     --text-primary: #f0f0f0;
     --text-secondary: #888888;
@@ -23,6 +24,7 @@
 
 .light-theme {
     --bg: #f8f9fa;
+    --bg-transparent: rgba(248, 249, 250, 0);
     --bg-card: rgba(255, 255, 255, 0.85);
     --text-primary: #121212;
     --text-secondary: #555555;
@@ -241,11 +243,11 @@ body {
     inset: 0;
     background: linear-gradient(
         180deg,
-        rgba(8, 8, 8, 0.2) 0%,
-        rgba(8, 8, 8, 0.45) 40%,
-        rgba(8, 8, 8, 0.75) 70%,
-        rgba(8, 8, 8, 0.95) 88%,
-        rgb(8, 8, 8) 100%
+        rgba(0, 0, 0, 0.2) 0%,
+        var(--bg-transparent) 20%,
+        var(--bg-transparent) 80%,
+        var(--bg) 95%,
+        var(--bg) 100%
     );
     z-index: 1;
     pointer-events: none;
@@ -640,8 +642,8 @@ section.in-view {
         180deg,
         var(--bg) 0%,
         var(--bg) 5%,
-        transparent 30%,
-        transparent 70%,
+        var(--bg-transparent) 30%,
+        var(--bg-transparent) 70%,
         var(--bg) 95%,
         var(--bg) 100%
     );
