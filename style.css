@@ -82,6 +82,7 @@ body {
 }
 
 .logo {
+    font-family: 'Rock Salt', cursive;
     font-size: 1.6rem;
     font-weight: 800;
     color: var(--light);
@@ -178,33 +179,22 @@ body {
     height: 100%;
     z-index: 0;
     pointer-events: none;
-    background:
-        repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 2px,
-            rgba(0, 212, 255, 0.025) 2px,
-            rgba(0, 212, 255, 0.025) 4px
-        ),
-        repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 10px,
-            rgba(0, 212, 255, 0.015) 10px,
-            rgba(0, 212, 255, 0.015) 12px
-        ),
-        radial-gradient(
-            ellipse at 50% 30%,
-            rgba(0, 212, 255, 0.06) 0%,
-            transparent 60%
-        );
-    animation: ascii-drift 6s ease-in-out infinite;
+    overflow: hidden;
+    background: var(--bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-@keyframes ascii-drift {
-    0%   { opacity: 0.12; }
-    50%  { opacity: 0.22; }
-    100% { opacity: 0.12; }
+#ascii-canvas {
+    font-family: monospace;
+    font-size: 11px;
+    line-height: 11px;
+    color: var(--accent);
+    white-space: pre;
+    text-align: center;
+    opacity: 0.25;
+    font-weight: bold;
 }
 
 .hero-overlay {

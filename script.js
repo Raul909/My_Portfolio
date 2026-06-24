@@ -1,3 +1,64 @@
+// ─── ASCII Video Background ───────────────────────────────────────────────────
+const asciiVideo = document.getElementById('hidden-video');
+const asciiCanvas = document.getElementById('ascii-canvas');
+
+if (asciiVideo && asciiCanvas) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    
+    // Density string from dark to light
+    const density = "Ñ@#W$9876543210?!abc;:+=-,._ ";
+    
+    // Resolution of ASCII grid
+    const asciiWidth = 100;
+    let asciiHeight = 50;
+
+    asciiVideo.addEventListener('loadedmetadata', () => {
+        const ratio = asciiVideo.videoHeight / asciiVideo.videoWidth;
+        // Adjust height to account for monospace font aspect ratio (~0.5)
+        asciiHeight = Math.floor(asciiWidth * ratio * 0.5);
+        canvas.width = asciiWidth;
+        canvas.height = asciiHeight;
+    });
+
+    function renderAscii() {
+        if (asciiVideo.paused || asciiVideo.ended) {
+            requestAnimationFrame(renderAscii);
+            return;
+        }
+
+        ctx.drawImage(asciiVideo, 0, 0, asciiWidth, asciiHeight);
+        const imageData = ctx.getImageData(0, 0, asciiWidth, asciiHeight);
+        const data = imageData.data;
+        
+        let asciiStr = "";
+        for (let y = 0; y < asciiHeight; y++) {
+            for (let x = 0; x < asciiWidth; x++) {
+                const idx = (y * asciiWidth + x) * 4;
+                const r = data[idx];
+                const g = data[idx+1];
+                const b = data[idx+2];
+                // Calculate brightness
+                const avg = (r + g + b) / 3;
+                const charIdx = Math.floor(mapRange(avg, 0, 255, density.length - 1, 0));
+                asciiStr += density[charIdx];
+            }
+            asciiStr += "\n";
+        }
+        
+        asciiCanvas.textContent = asciiStr;
+        requestAnimationFrame(renderAscii);
+    }
+    
+    function mapRange(value, inMin, inMax, outMin, outMax) {
+        return (value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
+    }
+
+    asciiVideo.addEventListener('play', () => {
+        renderAscii();
+    });
+}
+
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
 const sections = document.querySelectorAll('section[id]');
