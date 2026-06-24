@@ -15,6 +15,7 @@ class AsciiRenderer {
         // Density string from dark to light
         this.density = options.density || "Ñ@#W$9876543210?!abc;:+=-,._ ";
         this.tier = tier;
+        this.filter = options.filter || 'none';
         
         // Settings based on device tiers
         if (this.tier === 3) {
@@ -144,7 +145,9 @@ class AsciiRenderer {
         this.lastFrameTime = time - (elapsed % this.fpsInterval);
 
         // 1. Draw video downscaled to offscreen canvas
+        if (this.filter !== 'none') this.offscreenCtx.filter = this.filter;
         this.offscreenCtx.drawImage(this.video, 0, 0, this.cols, this.rows);
+        if (this.filter !== 'none') this.offscreenCtx.filter = 'none';
         const imageData = this.offscreenCtx.getImageData(0, 0, this.cols, this.rows);
         const data = imageData.data;
 
@@ -248,15 +251,16 @@ new AsciiRenderer('hidden-video', 'ascii-canvas', 'home', hardwareTier, {
 });
 
 new AsciiRenderer('video-editing-bg-video', 'video-editing-canvas', 'videos', hardwareTier, {
-    fontSize3: 5,     // Ultra dense for high-end PCs
-    fps3: 30,         // Smooth 30 FPS
+    fontSize3: 5,
+    fps3: 30,
     speed3: 1.0,
-    fontSize2: 10,    // Increased density for mid-range and mobile
-    fps2: 24,         // 24 FPS 
+    fontSize2: 10,
+    fps2: 24,
     speed2: 1.0,
-    fontSize1: 18,    // Lower resolution for low-end devices
-    fps1: 15,         // 15 FPS to conserve CPU
-    speed1: 0.8
+    fontSize1: 18,
+    fps1: 15,
+    speed1: 0.8,
+    filter: 'contrast(1.6) saturate(1.8) brightness(1.2)'
 });
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
