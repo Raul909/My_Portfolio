@@ -476,7 +476,7 @@ async function fetchGitHubRepos() {
     container.innerHTML = '<p class="loading-text">Loading projects...</p>';
 
     try {
-        const res = await fetch('https://api.github.com/users/Raul5756/repos?sort=updated&per_page=12');
+        const res = await fetch('https://api.github.com/users/Raul909/repos?sort=updated&per_page=12');
         if (!res.ok) throw new Error('GitHub API error');
         const repos = await res.json();
 
@@ -528,7 +528,7 @@ async function fetchGitHubRepos() {
         observeCards();
         add3DTiltEffect();
     } catch {
-        container.innerHTML = `<p class="error-text">Unable to load projects. Visit <a href="https://github.com/Raul5756" target="_blank" rel="noopener noreferrer">GitHub →</a></p>`;
+        container.innerHTML = `<p class="error-text">Unable to load projects. Visit <a href="https://github.com/Raul909" target="_blank" rel="noopener noreferrer">GitHub →</a></p>`;
     }
 }
 
@@ -894,6 +894,26 @@ class AuraAgent {
         this.updateHUD();
     }
 
+    talk(topic) {
+        this.lastInteraction = Date.now();
+        this.engagement = 1;
+        this.setMood('excited');
+        
+        let msg = "";
+        if (topic === 'stack') msg = "My core stack is Python, Java, C++, and AI/ML!";
+        else if (topic === 'role') msg = "I'm a Backend Developer at TCS, building scalable APIs.";
+        else if (topic === 'hire') msg = "I bring a unique blend of backend scalability and AI innovation.";
+        
+        if (this.messageEl) {
+            this.messageEl.style.opacity = 0;
+            setTimeout(() => {
+                this.messageEl.innerText = `"${msg}"`;
+                this.messageEl.style.opacity = 1;
+            }, 400);
+        }
+        this.updateHUD();
+    }
+
     updateHUD() {
         if (!this.hud) return;
         
@@ -1104,6 +1124,14 @@ window.addEventListener('DOMContentLoaded', () => {
         auraToggle.addEventListener('click', (e) => {
             e.stopPropagation();
             agentHud.classList.remove('minimized');
+            window.auraAgent.processInteraction(100, true);
+        });
+        
+        document.querySelectorAll('.aura-action-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.auraAgent.talk(btn.getAttribute('data-topic'));
+            });
         });
     }
 

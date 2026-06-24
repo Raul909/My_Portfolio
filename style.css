@@ -212,28 +212,28 @@ body {
 .aura-container {
     position: relative;
     pointer-events: auto;
-    background: linear-gradient(135deg, rgba(14,14,20,0.9) 0%, rgba(7,7,12,0.95) 100%);
+    background: rgba(18, 18, 26, 0.4);
     backdrop-filter: blur(24px) saturate(1.2);
     -webkit-backdrop-filter: blur(24px) saturate(1.2);
-    border: 1px solid var(--aura-color, rgba(74,74,85,0.3));
-    border-radius: 16px;
-    padding: 20px 24px;
-    box-shadow: 0 0 20px var(--aura-glow, transparent), inset 0 1px 0 rgba(255,255,255,0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    min-width: 220px;
-    max-width: 280px;
+    min-width: 280px;
+    max-width: 320px;
     transform-origin: bottom left;
 }
 
 .aura-close {
     position: absolute;
-    top: 16px;
-    right: 16px;
-    background: transparent;
+    top: 12px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.1);
     border: none;
-    color: #8A8A95;
+    color: #FFF;
     cursor: pointer;
-    transition: color 0.2s, transform 0.2s;
+    transition: background 0.2s, transform 0.2s;
     z-index: 10;
     display: flex;
     align-items: center;
@@ -243,9 +243,8 @@ body {
 }
 
 .aura-close:hover {
-    color: #F0F0F5;
     transform: scale(1.1);
-    background: rgba(255,255,255,0.05);
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .aura-orb {
@@ -331,6 +330,29 @@ body {
     opacity: 0.6;
     margin-bottom: 1rem;
     white-space: pre;
+}
+
+.aura-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.aura-action-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 6px 10px;
+    color: #F0F0F5;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.aura-action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--aura-color, rgba(255, 255, 255, 0.2));
 }
 
 
@@ -489,12 +511,13 @@ html {
     font-family: 'Rock Salt', cursive;
     font-size: 1.6rem;
     font-weight: 800;
-    color: #F0F0F5;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--light);
     letter-spacing: -0.5px;
 }
 
 .light-theme .logo {
-    color: #121212;
+    -webkit-text-stroke: 1px #121212;
 }
 
 .nav-links {
@@ -725,80 +748,6 @@ html {
     transform-origin: left;
     z-index: 9999;
     will-change: transform;
-}
-
-/* ─── Navbar ──────────────────────────────────────────────────────────────── */
-
-#navbar {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    background: transparent;
-    border-bottom: 1px solid transparent;
-    z-index: 1000;
-    transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, backdrop-filter 0.3s ease;
-}
-
-#navbar.scrolled {
-    background: var(--bg-card);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-}
-
-.nav-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.logo {
-    font-family: 'Rock Salt', cursive;
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: var(--light);
-    letter-spacing: -0.5px;
-}
-
-.nav-links {
-    display: flex;
-    gap: 2rem;
-}
-
-.nav-links a {
-    color: var(--muted);
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 0.9rem;
-    letter-spacing: 0.3px;
-    transition: color 0.2s ease;
-    position: relative;
-}
-
-.nav-links a::after {
-    content: '';
-    position: absolute;
-    bottom: -4px;
-    left: 0;
-    width: 0;
-    height: 1.5px;
-    background: var(--accent);
-    transition: width 0.25s ease;
-    border-radius: 2px;
-}
-
-.nav-links a:hover,
-.nav-links a.active {
-    color: var(--light);
-}
-
-.nav-links a:hover::after,
-.nav-links a.active::after {
-    width: 100%;
 }
 
 .theme-toggle {
