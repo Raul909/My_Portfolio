@@ -172,7 +172,7 @@ body {
 }
 
 #ascii-bg {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
@@ -187,14 +187,11 @@ body {
 }
 
 #ascii-canvas {
-    font-family: monospace;
-    font-size: 11px;
-    line-height: 11px;
-    color: var(--accent);
-    white-space: pre;
-    text-align: center;
-    opacity: 0.25;
-    font-weight: bold;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.35;
 }
 
 .hero-overlay {

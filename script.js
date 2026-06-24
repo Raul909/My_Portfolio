@@ -3,82 +3,123 @@ const asciiVideo = document.getElementById('hidden-video');
 const asciiCanvas = document.getElementById('ascii-canvas');
 
 if (asciiVideo && asciiCanvas) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const ctx = asciiCanvas.getContext('2d', { alpha: false });
+    const offscreenCanvas = document.createElement('canvas');
+    const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
     
     // Density string from dark to light
     const density = "Ñ@#W$9876543210?!abc;:+=-,._ ";
     
-    // Resolution of ASCII grid
-    const asciiWidth = 100;
-    let asciiHeight = 50;
+    let fontSize = 10;
+    let charWidth = fontSize * 0.6;
+    let charHeight = fontSize;
+    let cols = 0;
+    let rows = 0;
     let isRendering = false;
+    let lastFrameTime = 0;
+    const fpsInterval = 1000 / 30; // Limit to 30 FPS for performance
 
-    function initCanvas() {
-        if (!asciiVideo.videoWidth) return;
-        const ratio = asciiVideo.videoHeight / asciiVideo.videoWidth;
-        // Adjust height to account for monospace font aspect ratio (~0.5)
-        asciiHeight = Math.floor(asciiWidth * ratio * 0.5);
-        canvas.width = asciiWidth;
-        canvas.height = asciiHeight;
-    }
-
-    if (asciiVideo.readyState >= 1) {
-        initCanvas();
-    } else {
-        asciiVideo.addEventListener('loadedmetadata', initCanvas);
-    }
-
-    // Force call initCanvas on play/playing just in case metadata was delayed
-    asciiVideo.addEventListener('play', () => {
-        initCanvas();
-        if (!isRendering) {
-            isRendering = true;
-            renderAscii();
+    function handleResize() {
+        const width = asciiCanvas.offsetWidth;
+        const height = asciiCanvas.offsetHeight;
+        if (!width || !height) return;
+        
+        // Handle device pixel ratio for sharp rendering on retina screens
+        const dpr = window.devicePixelRatio || 1;
+        asciiCanvas.width = width * dpr;
+        asciiCanvas.height = height * dpr;
+        
+        // Dynamically adjust font size based on screen size for density
+        if (width < 768) {
+            fontSize = 12; // slightly larger font on mobile for speed
+        } else {
+            fontSize = 9;  // very dense font on desktop
         }
-    });
+        charWidth = fontSize * 0.6;
+        charHeight = fontSize;
+        
+        ctx.scale(dpr, dpr);
+        
+        cols = Math.floor(width / charWidth);
+        rows = Math.floor(height / charHeight);
+        
+        offscreenCanvas.width = cols;
+        offscreenCanvas.height = rows;
+    }
 
-    function renderAscii() {
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    function renderAscii(time) {
         if (asciiVideo.paused || asciiVideo.ended) {
             isRendering = false;
             return;
         }
 
-        ctx.drawImage(asciiVideo, 0, 0, asciiWidth, asciiHeight);
-        const imageData = ctx.getImageData(0, 0, asciiWidth, asciiHeight);
+        requestAnimationFrame(renderAscii);
+
+        // Throttle frame rate
+        const elapsed = time - lastFrameTime;
+        if (elapsed < fpsInterval) return;
+        lastFrameTime = time - (elapsed % fpsInterval);
+
+        // Draw current video frame scaled down to grid size
+        offscreenCtx.drawImage(asciiVideo, 0, 0, cols, rows);
+        const imageData = offscreenCtx.getImageData(0, 0, cols, rows);
         const data = imageData.data;
-        
-        let asciiStr = "";
-        for (let y = 0; y < asciiHeight; y++) {
-            for (let x = 0; x < asciiWidth; x++) {
-                const idx = (y * asciiWidth + x) * 4;
+
+        // Clear canvas with dark background matching --bg
+        ctx.fillStyle = '#080808';
+        ctx.fillRect(0, 0, asciiCanvas.width, asciiCanvas.height);
+
+        // Prepare text rendering state
+        ctx.font = 'bold ' + fontSize + 'px monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                const idx = (y * cols + x) * 4;
                 const r = data[idx];
                 const g = data[idx+1];
                 const b = data[idx+2];
-                // Calculate brightness
+                const a = data[idx+3];
+
+                if (a === 0) continue; // skip transparent pixels
+
                 const avg = (r + g + b) / 3;
-                const charIdx = Math.floor(mapRange(avg, 0, 255, density.length - 1, 0));
-                asciiStr += density[charIdx];
+                
+                // Map brightness to character index
+                const charIdx = Math.floor((avg / 255) * (density.length - 1));
+                // Invert mapping: darker pixels are closer to the end (space), brighter are closer to index 0 (heavy characters)
+                const mappedCharIdx = (density.length - 1) - charIdx;
+                const char = density[mappedCharIdx];
+
+                if (char !== ' ') {
+                    // Set color to pixel color
+                    ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    ctx.fillText(char, x * charWidth, y * charHeight);
+                }
             }
-            asciiStr += "\n";
         }
-        
-        asciiCanvas.textContent = asciiStr;
-        requestAnimationFrame(renderAscii);
     }
-    
-    function mapRange(value, inMin, inMax, outMin, outMax) {
-        return (value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
-    }
+
+    asciiVideo.addEventListener('play', () => {
+        handleResize();
+        if (!isRendering) {
+            isRendering = true;
+            requestAnimationFrame(renderAscii);
+        }
+    });
 
     // Attempt autoplay programmatically
     const startPlay = () => {
         asciiVideo.play()
             .then(() => {
-                initCanvas();
+                handleResize();
                 if (!isRendering) {
                     isRendering = true;
-                    renderAscii();
+                    requestAnimationFrame(renderAscii);
                 }
             })
             .catch(err => {
@@ -86,9 +127,10 @@ if (asciiVideo && asciiCanvas) {
             });
     };
 
-    startPlay();
+    // Trigger initial play attempt with a slight delay
+    setTimeout(startPlay, 100);
 
-    // Interaction fallback to start playback if blocked by autoplay policies
+    // Interaction fallback
     const handleFirstInteraction = () => {
         if (asciiVideo.paused) {
             startPlay();
