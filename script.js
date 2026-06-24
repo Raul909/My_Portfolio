@@ -108,6 +108,31 @@ class AsciiRenderer {
         document.addEventListener('touchstart', handleInteraction);
     }
 
+    initParticles() {
+        const length = this.rows * this.cols;
+        this.px = new Float32Array(length);
+        this.py = new Float32Array(length);
+        this.pz = new Float32Array(length);
+        this.ox = new Float32Array(length);
+        this.oy = new Float32Array(length);
+        this.vx = new Float32Array(length);
+        this.vy = new Float32Array(length);
+        this.vz = new Float32Array(length);
+        this.phase = new Float32Array(length);
+
+        for (let y = 0; y < this.rows; y++) {
+            for (let x = 0; x < this.cols; x++) {
+                const i = y * this.cols + x;
+                this.ox[i] = x * this.charWidth;
+                this.oy[i] = y * this.charHeight;
+                this.px[i] = this.ox[i];
+                this.py[i] = this.oy[i];
+                this.pz[i] = 0;
+                this.phase[i] = Math.random() * Math.PI * 2;
+            }
+        }
+    }
+
     handleResize() {
         const width = this.canvas.offsetWidth;
         const height = this.canvas.offsetHeight;
@@ -133,6 +158,8 @@ class AsciiRenderer {
 
         this.offscreenCanvas.width = this.cols;
         this.offscreenCanvas.height = this.rows;
+        
+        this.initParticles();
     }
 
     handleMouseMove(e) {
@@ -140,7 +167,6 @@ class AsciiRenderer {
         this.targetMouseX = e.clientX - rect.left;
         this.targetMouseY = e.clientY - rect.top;
         
-        // Notify AURA agent if exists
         if (window.auraAgent) {
             const velocity = Math.sqrt(e.movementX**2 + e.movementY**2);
             window.auraAgent.processInteraction(velocity);
@@ -150,7 +176,6 @@ class AsciiRenderer {
     render(time) {
         if (!this.isRendering) return;
 
-        // Smooth mouse interpolation
         this.mouseX += (this.targetMouseX - this.mouseX) * 0.15;
         this.mouseY += (this.targetMouseY - this.mouseY) * 0.15;
 
@@ -172,113 +197,114 @@ class AsciiRenderer {
         if (elapsed < this.fpsInterval) return;
         this.lastFrameTime = time - (elapsed % this.fpsInterval);
 
-        // 1. Draw video downscaled to offscreen canvas
         if (this.filter !== 'none') this.offscreenCtx.filter = this.filter;
         this.offscreenCtx.drawImage(this.video, 0, 0, this.cols, this.rows);
         if (this.filter !== 'none') this.offscreenCtx.filter = 'none';
         const imageData = this.offscreenCtx.getImageData(0, 0, this.cols, this.rows);
         const data = imageData.data;
 
-        // 2. Clear canvas with black background
-        this.ctx.fillStyle = '#080808';
+        // Deep fade background
+        this.ctx.fillStyle = 'rgba(7, 7, 12, 0.12)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // 3. Prepare text rendering state
-        const currentFontSize = Math.round(this.charHeight);
-        this.ctx.font = 'bold ' + currentFontSize + 'px monospace';
+        const perspective = 500;
+        const cx = (this.cols * this.charWidth) / 2;
+        const cy = (this.rows * this.charHeight) / 2;
+        
+        // Render from back to front using an index array
+        const len = this.rows * this.cols;
+        const order = new Int32Array(len);
+        for(let i=0; i<len; i++) order[i] = i;
+        
+        // Physics update
+        for (let i = 0; i < len; i++) {
+            const dx = this.ox[i] - this.mouseX;
+            const dy = this.oy[i] - this.mouseY;
+            const distSq = dx * dx + dy * dy;
+            const mouseRadius = 200;
+            
+            // 3D Tunnel Effect
+            if (distSq < mouseRadius * mouseRadius && this.mouseX > 0) {
+                const dist = Math.sqrt(distSq);
+                const force = 1 - (dist / mouseRadius);
+                const angle = Math.atan2(dy, dx);
+                
+                // Push deep into screen
+                this.vz[i] += force * 15;
+                this.vx[i] += Math.cos(angle) * force * 3;
+                this.vy[i] += Math.sin(angle) * force * 3;
+                
+                // Rotation
+                const rotSpeed = force * 0.02;
+                const cosR = Math.cos(rotSpeed);
+                const sinR = Math.sin(rotSpeed);
+                const rx = dx * cosR - dy * sinR;
+                const ry = dx * sinR + dy * cosR;
+                
+                this.vx[i] += (rx - dx) * force * 0.1;
+                this.vy[i] += (ry - dy) * force * 0.1;
+            }
+            
+            // Ambient wave
+            this.vx[i] += Math.sin(time * 0.001 + this.oy[i] * 0.01 + this.phase[i]) * 0.02;
+            this.vy[i] += Math.cos(time * 0.0015 + this.ox[i] * 0.01 + this.phase[i]) * 0.02;
+            
+            // Spring back
+            this.vx[i] += (this.ox[i] - this.px[i]) * 0.03;
+            this.vy[i] += (this.oy[i] - this.py[i]) * 0.03;
+            this.vz[i] += (0 - this.pz[i]) * 0.05;
+            
+            // Damping
+            this.vx[i] *= 0.92;
+            this.vy[i] *= 0.92;
+            this.vz[i] *= 0.88;
+            
+            this.px[i] += this.vx[i];
+            this.py[i] += this.vy[i];
+            this.pz[i] += this.vz[i];
+        }
+
+        // Sort for proper depth rendering
+        order.sort((a, b) => this.pz[b] - this.pz[a]);
+        
         this.ctx.textAlign = 'left';
         this.ctx.textBaseline = 'top';
 
-        // 4. Render ASCII
-        if (this.tier === 1) {
-            // OPTIMIZATION FOR LOW-END DEVICES: 
-            // Avoid expensive ctx.fillStyle state changes per character.
-            // Draw all characters in white, then use GPU compositing to color them.
-            this.ctx.fillStyle = '#ffffff';
-            for (let y = 0; y < this.rows; y++) {
-                for (let x = 0; x < this.cols; x++) {
-                    const idx = (y * this.cols + x) * 4;
-                    const r = data[idx];
-                    const g = data[idx+1];
-                    const b = data[idx+2];
-                    const a = data[idx+3];
+        for (let j = 0; j < len; j++) {
+            const i = order[j];
+            const dataIdx = i * 4;
+            const r = data[dataIdx];
+            const g = data[dataIdx+1];
+            const b = data[dataIdx+2];
+            const a = data[dataIdx+3];
 
-                    if (a === 0) continue;
-                    const avg = (r + g + b) / 3;
-                    if (avg < 25) continue; 
+            if (a === 0) continue;
+            
+            const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+            if (brightness < 20) continue; 
 
-                    const charIdx = Math.floor(((avg - 25) / 230) * (this.density.length - 2));
-                    const mappedCharIdx = (this.density.length - 2) - Math.min(Math.max(charIdx, 0), this.density.length - 2);
-                    const char = this.density[mappedCharIdx];
+            // Perspective projection
+            const scale = perspective / (perspective + this.pz[i]);
+            const screenX = (this.px[i] - cx) * scale + cx;
+            const screenY = (this.py[i] - cy) * scale + cy;
+            const alpha = Math.max(0.1, Math.min(1, 1 - this.pz[i] * 0.05)) * (a/255);
+            
+            if (screenX < -20 || screenX > this.canvas.width/dpr + 20 || screenY < -20 || screenY > this.canvas.height/dpr + 20) continue;
 
-                    let drawX = x * this.charWidth;
-                    let drawY = y * this.charHeight;
-
-                    // Mouse Interaction Physics (Repulsion)
-                    const dx = drawX - this.mouseX;
-                    const dy = drawY - this.mouseY;
-                    const distSq = dx * dx + dy * dy;
-                    const radius = 150;
-                    
-                    if (distSq < radius * radius && distSq > 0) {
-                        const dist = Math.sqrt(distSq);
-                        const force = (radius - dist) / radius;
-                        drawX += (dx / dist) * force * 30; // Push strength
-                        drawY += (dy / dist) * force * 30;
-                    }
-
-                    this.ctx.fillText(char, drawX, drawY);
-                }
+            const charIdx = Math.floor((brightness / 255) * (this.density.length - 1));
+            const char = this.density[Math.max(0, Math.min(charIdx, this.density.length - 1))];
+            
+            // Color based on depth
+            if (this.tier === 1) {
+                this.ctx.fillStyle = `rgba(240, 240, 245, ${alpha})`;
+            } else {
+                const depthSat = 60 + this.pz[i] * 20;
+                const depthLight = 40 + (brightness/255)*40 + this.pz[i] * 15;
+                this.ctx.fillStyle = `hsla(${15 + (brightness/255)*20}, ${depthSat}%, ${depthLight}%, ${alpha})`;
             }
-
-            // Apply color via GPU compositing
-            this.ctx.globalCompositeOperation = 'source-in';
-            this.ctx.drawImage(this.offscreenCanvas, 0, 0, this.canvas.width, this.canvas.height);
-            this.ctx.globalCompositeOperation = 'destination-over';
-            this.ctx.fillStyle = '#080808';
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-            this.ctx.globalCompositeOperation = 'source-over';
-
-        } else {
-            // HIGH-END/MID-RANGE: Use exact original logic (pixel-by-pixel color)
-            // for maximum authenticity and high density detailing
-            for (let y = 0; y < this.rows; y++) {
-                for (let x = 0; x < this.cols; x++) {
-                    const idx = (y * this.cols + x) * 4;
-                    const r = data[idx];
-                    const g = data[idx+1];
-                    const b = data[idx+2];
-                    const a = data[idx+3];
-
-                    if (a === 0) continue;
-
-                    const avg = (r + g + b) / 3;
-                    if (avg < 25) continue; // skip very dark pixels to keep good contrast
-
-                    const charIdx = Math.floor(((avg - 25) / 230) * (this.density.length - 2));
-                    const mappedCharIdx = (this.density.length - 2) - Math.min(Math.max(charIdx, 0), this.density.length - 2);
-                    const char = this.density[mappedCharIdx];
-
-                    let drawX = x * this.charWidth;
-                    let drawY = y * this.charHeight;
-
-                    // Mouse Interaction Physics
-                    const dx = drawX - this.mouseX;
-                    const dy = drawY - this.mouseY;
-                    const distSq = dx * dx + dy * dy;
-                    const radius = 150;
-                    
-                    if (distSq < radius * radius && distSq > 0) {
-                        const dist = Math.sqrt(distSq);
-                        const force = (radius - dist) / radius;
-                        drawX += (dx / dist) * force * 30;
-                        drawY += (dy / dist) * force * 30;
-                    }
-
-                    this.ctx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
-                    this.ctx.fillText(char, drawX, drawY);
-                }
-            }
+            
+            this.ctx.font = `bold ${this.charHeight * scale}px "JetBrains Mono", monospace`;
+            this.ctx.fillText(char, screenX, screenY);
         }
     }
 }
@@ -398,12 +424,14 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 const menuToggle = document.querySelector('.menu-toggle');
 const navMenu = document.querySelector('.nav-links');
 
-menuToggle.addEventListener('click', () => {
-    const open = navMenu.classList.toggle('active');
-    menuToggle.classList.toggle('active', open);
-    menuToggle.setAttribute('aria-expanded', open);
-    document.body.style.overflow = open ? 'hidden' : '';
-});
+if (menuToggle && navMenu) {
+    menuToggle.addEventListener('click', () => {
+        const open = navMenu.classList.toggle('active');
+        menuToggle.classList.toggle('active', open);
+        menuToggle.setAttribute('aria-expanded', open);
+        document.body.style.overflow = open ? 'hidden' : '';
+    });
+}
 
 document.querySelectorAll('.nav-links a').forEach(link => {
     link.addEventListener('click', () => {
@@ -790,72 +818,107 @@ themeToggle.addEventListener('click', () => {
 
 // ─── AURA AI Agent & Custom Cursor ──────────────────────────────────────────
 
+const MOOD_CONFIG = {
+    dormant: { color: '#4A4A55', glow: 'rgba(74,74,85,0)', breathing: '4s', icon: '○' },
+    curious: { color: '#4ECDC4', glow: 'rgba(78,205,196,0.15)', breathing: '2.5s', icon: '◐' },
+    excited: { color: '#E85D3F', glow: 'rgba(232,93,63,0.2)', breathing: '1.2s', icon: '◉' },
+    contemplative: { color: '#D4A853', glow: 'rgba(212,168,83,0.12)', breathing: '3s', icon: '◎' }
+};
+
+const MESSAGES = {
+    dormant: ['the void listens...', 'silence is data too', 'waiting for your signal'],
+    curious: ['I see patterns in your movement', 'the cursor tells a story', 'what are you looking for?'],
+    excited: ['energy surge detected!', 'your presence ripples the matrix', 'the code comes alive!'],
+    contemplative: ['processing your journey...', 'every pixel has meaning', 'the matrix remembers']
+};
+
+const ASCII_ARTS = {
+    dormant: "    ·  ·    ·\n  ·    ○    ·\n    ·    ·  ·",
+    curious: "   ╱╲\n  ╱◯╲\n  ╲╱╲╱",
+    excited: "    ✦\n   ╱│╲\n  ─┼─\n   ╲│╱\n    ✦",
+    contemplative: "  ┌─────┐\n  │  ∞  │\n  └─────┘"
+};
+
 class AuraAgent {
     constructor() {
         this.hud = document.getElementById('agent-hud');
-        this.nameEl = document.getElementById('agent-name');
-        this.messageEl = document.getElementById('agent-message');
-        this.asciiEl = document.getElementById('agent-ascii');
-        this.moodEl = document.getElementById('agent-mood');
-        this.engagementEl = document.getElementById('agent-engagement');
+        this.container = document.querySelector('.aura-container');
+        this.badgeEl = document.getElementById('aura-badge');
+        this.messageEl = document.getElementById('aura-message');
+        this.asciiEl = document.getElementById('aura-ascii');
+        this.percentEl = document.getElementById('aura-percent');
+        this.barEl = document.getElementById('aura-bar-fill');
+        this.hintEl = document.getElementById('aura-hint');
         
         this.engagement = 0;
-        this.interactionCount = 0;
-        this.mood = "calm";
+        this.mood = "dormant";
         this.lastInteraction = Date.now();
-        this.wakeUpTimeout = null;
-        
-        this.responses = {
-            hover: ["I see you...", "Interesting choice...", "The pixels whisper..."],
-            click: ["*ripples*", "A disturbance in the force!", "You touched the void!"],
-            idle: ["Waiting...", "The ASCII dreams...", "Static hums..."],
-            rapid: ["So fast!", "Your cursor dances!", "Energy surge detected!"]
-        };
-
-        this.arts = {
-            calm: "  ★  .  ·  ˚  ✦\n    ·  AURA  ·\n  ✦  ·  .  ★",
-            excited: "  ╔════════════╗\n  ║ WATCHING YOU ║\n  ╚════════════╝",
-            curious: "  ░░░░░░░░░░░░░░\n  ░░  DEEP  ░░\n  ░░░░░░░░░░░░░░"
-        };
+        this.messageInterval = null;
         
         this.updateHUD();
+        this.startMessageCycle();
         
         // Decay engagement over time
         setInterval(() => {
-            if (Date.now() - this.lastInteraction > 3000 && this.engagement > 0) {
-                this.engagement = Math.max(0, this.engagement - 2);
-                this.mood = this.engagement < 10 ? "calm" : "curious";
+            const timeSince = Date.now() - this.lastInteraction;
+            if (timeSince > 3000) {
+                if (this.engagement > 0) this.engagement = Math.max(0, this.engagement - 0.02);
+                
+                if (timeSince > 10000 && this.mood !== 'dormant') {
+                    this.setMood('dormant');
+                } else if (timeSince > 5000 && this.engagement > 0.3 && this.mood !== 'contemplative') {
+                    this.setMood('contemplative');
+                }
                 this.updateHUD();
             }
         }, 1000);
     }
 
+    startMessageCycle() {
+        if (this.messageInterval) clearInterval(this.messageInterval);
+        this.messageInterval = setInterval(() => {
+            const pool = MESSAGES[this.mood];
+            const msg = pool[Math.floor(Math.random() * pool.length)];
+            
+            // Fade effect
+            if (this.messageEl) {
+                this.messageEl.style.opacity = 0;
+                setTimeout(() => {
+                    this.messageEl.innerText = `"${msg}"`;
+                    this.messageEl.style.opacity = 1;
+                }, 400);
+            }
+        }, 4000);
+    }
+
+    setMood(newMood) {
+        if (this.mood === newMood) return;
+        this.mood = newMood;
+        
+        const pool = MESSAGES[this.mood];
+        if (this.messageEl) {
+            this.messageEl.style.opacity = 0;
+            setTimeout(() => {
+                this.messageEl.innerText = `"${pool[Math.floor(Math.random() * pool.length)]}"`;
+                this.messageEl.style.opacity = 1;
+            }, 400);
+        }
+    }
+
     processInteraction(velocity, isClick = false) {
         this.lastInteraction = Date.now();
-        this.interactionCount++;
-        this.engagement = Math.min(100, this.engagement + (isClick ? 10 : 1));
+        this.engagement = Math.min(1, this.engagement + (isClick ? 0.15 : 0.02));
         
         if (this.hud && !this.hud.classList.contains('visible')) {
             this.hud.classList.add('visible');
         }
 
-        let responsePool = this.responses.idle;
         if (isClick) {
-            this.mood = "excited";
-            responsePool = this.responses.click;
+            this.setMood('excited');
         } else if (velocity > 30) {
-            this.mood = "excited";
-            responsePool = this.responses.rapid;
-        } else if (velocity > 5) {
-            this.mood = "curious";
-            responsePool = this.responses.hover;
-        } else {
-            this.mood = "calm";
-        }
-
-        // Only change message occasionally to prevent flickering
-        if (this.interactionCount % 10 === 0 || isClick) {
-            this.messageEl.innerText = responsePool[Math.floor(Math.random() * responsePool.length)];
+            this.setMood('excited');
+        } else if (this.mood === 'dormant' || this.mood === 'contemplative') {
+            this.setMood('curious');
         }
         
         this.updateHUD();
@@ -863,50 +926,190 @@ class AuraAgent {
 
     updateHUD() {
         if (!this.hud) return;
-        this.moodEl.innerText = `Mood: ${this.mood}`;
-        this.engagementEl.innerText = `Engagement: ${Math.round(this.engagement)}%`;
-        this.asciiEl.innerText = this.arts[this.mood] || this.arts.calm;
+        
+        const config = MOOD_CONFIG[this.mood];
+        
+        // CSS Variables update
+        if (this.container) {
+            this.container.style.setProperty('--aura-color', config.color);
+            this.container.style.setProperty('--aura-glow', config.glow);
+            this.container.style.setProperty('--aura-breathing', config.breathing);
+        }
+        
+        if (this.badgeEl) this.badgeEl.innerText = this.mood;
+        if (this.asciiEl) this.asciiEl.innerText = ASCII_ARTS[this.mood];
+        if (this.percentEl) this.percentEl.innerText = `${Math.round(this.engagement * 100)}%`;
+        if (this.barEl) this.barEl.style.width = `${this.engagement * 100}%`;
+        
+        if (this.hintEl) {
+            this.hintEl.style.opacity = this.mood === 'dormant' ? '1' : '0';
+        }
     }
 }
 
 class CustomCursor {
     constructor() {
         this.cursor = document.getElementById('custom-cursor');
-        this.x = -100;
-        this.y = -100;
-        this.targetX = -100;
-        this.targetY = -100;
+        this.dot = document.getElementById('cursor-dot');
+        this.ring = document.getElementById('cursor-ring');
+        this.label = document.getElementById('cursor-label');
+        this.trailContainer = document.getElementById('cursor-trail-container');
+        
+        this.x = -100; this.y = -100;
+        this.targetX = -100; this.targetY = -100;
+        this.ringX = -100; this.ringY = -100;
+        
+        this.trails = [];
+        this.numTrails = 8;
+        
+        this.state = { hover: false, text: '', type: 'default', click: false };
         
         if (!this.cursor) return;
         
-        // Disable on touch devices
         if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
             this.cursor.style.display = 'none';
             document.body.style.cursor = 'auto';
             return;
         }
 
+        // Init trails
+        if (this.trailContainer) {
+            for(let i=0; i<this.numTrails; i++) {
+                const el = document.createElement('div');
+                el.className = 'cursor-trail-dot';
+                this.trailContainer.appendChild(el);
+                this.trails.push({ el, x: -100, y: -100 });
+            }
+        }
+
         window.addEventListener('mousemove', (e) => {
             this.targetX = e.clientX;
             this.targetY = e.clientY;
+            
+            // Push trail history
+            for(let i = this.numTrails - 1; i > 0; i--) {
+                this.trails[i].x = this.trails[i-1].x;
+                this.trails[i].y = this.trails[i-1].y;
+            }
+            this.trails[0].x = this.targetX;
+            this.trails[0].y = this.targetY;
         });
 
-        window.addEventListener('click', () => {
+        window.addEventListener('mousedown', () => {
+            this.state.click = true;
+            this.updateStyles();
             if (window.auraAgent) window.auraAgent.processInteraction(100, true);
+        });
+        
+        window.addEventListener('mouseup', () => {
+            this.state.click = false;
+            this.updateStyles();
+        });
+
+        // Event delegation for hovers
+        document.addEventListener('mouseover', (e) => {
+            const t = e.target;
+            if (t.tagName === 'A' || t.closest('a')) this.setHover('link', 'Explore');
+            else if (t.tagName === 'BUTTON' || t.closest('button')) this.setHover('button', 'Click');
+            else if (t.tagName === 'IMG' || t.closest('img')) this.setHover('image', 'View');
+            else if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') this.setHover('text', 'Type');
+        });
+
+        document.addEventListener('mouseout', (e) => {
+            if (e.target.tagName === 'A' || e.target.closest('a') || e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'IMG' || e.target.closest('img') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                this.setHover('default', '');
+            }
         });
 
         this.animate = this.animate.bind(this);
         requestAnimationFrame(this.animate);
     }
+    
+    setHover(type, text) {
+        this.state.hover = type !== 'default';
+        this.state.type = type;
+        this.state.text = text;
+        this.updateStyles();
+    }
+    
+    getColor() {
+        if (this.state.hover) {
+            if (this.state.type === 'link') return '#4ECDC4';
+            if (this.state.type === 'button') return '#E85D3F';
+            if (this.state.type === 'text') return '#D4A853';
+            if (this.state.type === 'image') return '#6366F1';
+        }
+        return '#F0F0F5';
+    }
+
+    updateStyles() {
+        const color = this.getColor();
+        
+        if (this.dot) {
+            this.dot.style.backgroundColor = color;
+            this.dot.style.transform = `translate(-50%, -50%) scale(${this.state.click ? 0.6 : 1})`;
+            if (this.state.hover) this.dot.style.opacity = '0';
+            else this.dot.style.opacity = '0.8';
+        }
+        
+        if (this.ring) {
+            const size = this.state.click ? 20 : (this.state.hover ? 48 : 28);
+            this.ring.style.width = `${size}px`;
+            this.ring.style.height = `${size}px`;
+            this.ring.style.borderColor = color;
+            this.ring.style.opacity = this.state.hover ? '0.6' : '0.3';
+            this.ring.style.borderWidth = this.state.hover ? '1px' : '2px';
+        }
+        
+        if (this.label) {
+            if (this.state.hover && this.state.text) {
+                this.label.innerText = this.state.text;
+                this.label.style.opacity = '1';
+                this.label.style.transform = `translate(24px, -50%) scale(1)`;
+                this.label.style.color = color;
+                this.label.style.backgroundColor = `color-mix(in srgb, ${color} 15%, transparent)`;
+                this.label.style.border = `1px solid color-mix(in srgb, ${color} 30%, transparent)`;
+            } else {
+                this.label.style.opacity = '0';
+                this.label.style.transform = `translate(16px, -50%) scale(0.8)`;
+            }
+        }
+    }
 
     animate() {
-        // Smooth lerp
-        this.x += (this.targetX - this.x) * 0.15;
-        this.y += (this.targetY - this.y) * 0.15;
+        // Fast lerp for dot
+        this.x += (this.targetX - this.x) * 0.4;
+        this.y += (this.targetY - this.y) * 0.4;
         
-        if (this.cursor) {
-            this.cursor.style.transform = `translate(${this.x}px, ${this.y}px)`;
+        // Slower spring for ring
+        this.ringX += (this.targetX - this.ringX) * 0.15;
+        this.ringY += (this.targetY - this.ringY) * 0.15;
+        
+        if (this.dot) {
+            this.dot.style.left = `${this.x}px`;
+            this.dot.style.top = `${this.y}px`;
         }
+        if (this.ring) {
+            this.ring.style.left = `${this.ringX}px`;
+            this.ring.style.top = `${this.ringY}px`;
+        }
+        if (this.label) {
+            this.label.style.left = `${this.x}px`;
+            this.label.style.top = `${this.y}px`;
+        }
+        
+        // Update trails
+        const color = this.getColor();
+        this.trails.forEach((t, i) => {
+            const size = 6 - (i * 0.5);
+            t.el.style.left = `${t.x}px`;
+            t.el.style.top = `${t.y}px`;
+            t.el.style.width = `${size}px`;
+            t.el.style.height = `${size}px`;
+            t.el.style.backgroundColor = color;
+            t.el.style.opacity = this.state.hover ? '0' : Math.max(0, 0.4 - (i * 0.05));
+        });
+
         requestAnimationFrame(this.animate);
     }
 }
@@ -915,4 +1118,59 @@ class CustomCursor {
 window.addEventListener('DOMContentLoaded', () => {
     window.auraAgent = new AuraAgent();
     new CustomCursor();
+
+    // Floating Nav Visibility
+    const nav = document.querySelector('.floating-nav');
+    if (nav) {
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 100) {
+                nav.classList.remove('hidden');
+            } else {
+                nav.classList.add('hidden');
+            }
+        });
+        // Initial check
+        if (window.scrollY <= 100) nav.classList.add('hidden');
+    }
+
+    // Section Reveals
+    const observerOptions = {
+        root: null,
+        rootMargin: '-50px',
+        threshold: 0.1
+    };
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.section-reveal').forEach(el => observer.observe(el));
+
+    // Tilt Cards Glow & 3D Effect
+    document.querySelectorAll('.tilt-card').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Set CSS variables for the glow
+            card.style.setProperty('--mouse-x', `${x}px`);
+            card.style.setProperty('--mouse-y', `${y}px`);
+            
+            // Calculate 3D tilt
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = ((y - centerY) / centerY) * -10;
+            const rotateY = ((x - centerX) / centerX) * 10;
+            
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+        });
+        
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+        });
+    });
 });

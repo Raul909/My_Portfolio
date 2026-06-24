@@ -25,54 +25,72 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Rock+Salt&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" as="style">
-    <link href="https://fonts.googleapis.com/css2?family=Rock+Salt&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Rock+Salt&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=Crimson+Pro:ital@0;1&display=swap" as="style">
+    <link href="https://fonts.googleapis.com/css2?family=Rock+Salt&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=Crimson+Pro:ital@0;1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <!-- Custom Cursor -->
     <div id="custom-cursor" class="custom-cursor" aria-hidden="true">
-        <div class="cursor-dot"></div>
-        <div class="cursor-ring"></div>
+        <div id="cursor-trail-container"></div>
+        <div id="cursor-ring" class="cursor-ring"></div>
+        <div id="cursor-dot" class="cursor-dot"><div class="cursor-glow"></div></div>
+        <div id="cursor-label" class="cursor-label"></div>
     </div>
 
     <!-- Agent HUD -->
-    <div id="agent-hud" class="agent-hud glass-card" aria-hidden="true">
-        <div class="agent-header">
-            <div class="agent-status-indicator"></div>
-            <h3 id="agent-name">AURA</h3>
+    <div id="agent-hud" class="agent-hud" aria-hidden="true">
+        <div class="aura-container">
+            <div id="aura-orb" class="aura-orb"></div>
+            
+            <div class="aura-header">
+                <div class="aura-status">
+                    <div id="aura-ring-outer" class="aura-ring-outer"></div>
+                    <div id="aura-ring-inner" class="aura-ring-inner"></div>
+                </div>
+                <span class="aura-title">AURA</span>
+                <span id="aura-badge" class="aura-badge">dormant</span>
+            </div>
+
+            <p id="aura-message" class="aura-message">"the void listens..."</p>
+            
+            <pre id="aura-ascii" class="aura-ascii"></pre>
+            
+            <div class="aura-engagement">
+                <div class="aura-engagement-text">
+                    <span>Resonance</span>
+                    <span id="aura-percent">0%</span>
+                </div>
+                <div class="aura-bar-bg">
+                    <div id="aura-bar-fill" class="aura-bar-fill"></div>
+                </div>
+            </div>
+            
+            <div id="aura-hint" class="aura-hint">
+                <span>→</span> move to awaken
+            </div>
         </div>
-        <p id="agent-message" class="agent-message">Move your cursor to awaken the agent...</p>
-        <pre id="agent-ascii" class="agent-ascii"></pre>
-        <div class="agent-footer">
-            <span id="agent-mood">Mood: calm</span>
-            <span id="agent-engagement">Engagement: 0%</span>
+        
+        <div class="aura-link">
+            <div class="aura-link-dot"></div>
+            <span>neural link active</span>
         </div>
     </div>
 
     <div id="scroll-progress" aria-hidden="true"></div>
-    <nav id="navbar" role="navigation" aria-label="Main navigation">
-        <div class="nav-content">
-            <div class="logo" aria-label="Rahul Biswas">RB</div>
-            <div class="nav-links">
-                <a href="#home" class="nav-link">Home</a>
-                <a href="#about" class="nav-link">About</a>
-                <a href="#code" class="nav-link">Code</a>
-                <a href="#videos" class="nav-link">Videos</a>
-                <a href="#photos" class="nav-link">Photos</a>
-                <a href="#contact" class="nav-link">Contact</a>
-            </div>
-            <div class="nav-controls" style="display: flex; align-items: center; gap: 1rem;">
-                <button class="theme-toggle" aria-label="Toggle theme">
-                    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-                    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                </button>
-                <button class="menu-toggle" aria-label="Toggle mobile menu" aria-expanded="false">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
-            </div>
+    <nav id="navbar" class="floating-nav" role="navigation" aria-label="Main navigation">
+        <div class="glass-card nav-pill">
+            <a href="#home" class="nav-link group">Home<span class="nav-underline"></span></a>
+            <a href="#about" class="nav-link group">About<span class="nav-underline"></span></a>
+            <a href="#code" class="nav-link group">Code<span class="nav-underline"></span></a>
+            <a href="#videos" class="nav-link group">Videos<span class="nav-underline"></span></a>
+            <a href="#photos" class="nav-link group">Photos<span class="nav-underline"></span></a>
+            <a href="#contact" class="nav-link group">Contact<span class="nav-underline"></span></a>
+            
+            <button class="theme-toggle" aria-label="Toggle theme">
+                <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </button>
         </div>
     </nav>
 
@@ -83,8 +101,21 @@
             <canvas id="ascii-canvas"></canvas>
         </div>
         <div class="hero-overlay" aria-hidden="true"></div>
-        <div class="hero-content">
-            <h1 class="glitch" data-text="RAHUL BISWAS">RAHUL BISWAS</h1>
+        <div class="hero-content stagger-children">
+            <h1 class="stagger-title">
+                <span style="color: #F0F0F5">R</span>
+                <span style="color: #F0F0F5">A</span>
+                <span style="color: #F0F0F5">H</span>
+                <span style="color: #F0F0F5">U</span>
+                <span style="color: #F0F0F5">L</span>
+                <span>&nbsp;</span>
+                <span style="color: #E85D3F">B</span>
+                <span style="color: #E85D3F">I</span>
+                <span style="color: #E85D3F">S</span>
+                <span style="color: #E85D3F">W</span>
+                <span style="color: #E85D3F">A</span>
+                <span style="color: #E85D3F">S</span>
+            </h1>
             <div class="typing-container" role="status" aria-live="polite">
                 <span class="typing-text"></span>
                 <span class="cursor" aria-hidden="true">|</span>
@@ -97,36 +128,62 @@
         <a href="#about" class="scroll-indicator" aria-label="Scroll to about section">↓</a>
     </section>
 
-    <section id="about" class="about">
+    <section id="about" class="about section-reveal">
         <div class="container">
             <h2 class="section-title">About Me</h2>
-            <div class="about-grid">
-                <div class="about-card" data-tilt>
-                    <div class="icon"><img src="icons/developer.png" alt="Developer Icon" loading="lazy"></div>
-                    <h3>Developer</h3>
-                    <p>B.Tech student in Electronics and Telecommunication Engineering at IIEST Shibpur specializing in DSA, AI/ML, and backend development. Proficient in Python, C++, Java, and modern frameworks.</p>
+            <div class="about-grid stagger-children">
+                <div class="about-card tilt-card">
+                    <div class="card-glow"></div>
+                    <div class="icon" style="background: rgba(232,93,63,0.1); border-radius: 12px; padding: 12px; display: inline-block;"><img src="icons/developer.png" alt="Developer Icon" loading="lazy"></div>
+                    <h3 style="color: #F0F0F5;">Developer</h3>
+                    <p style="color: #8A8A95;">B.Tech student in Electronics and Telecommunication Engineering at IIEST Shibpur specializing in DSA, AI/ML, and backend development. Proficient in Python, C++, Java, and modern frameworks.</p>
                 </div>
-                <div class="about-card" data-tilt>
-                    <div class="icon"><img src="icons/video-editing.png" alt="Video Editor Icon" loading="lazy"></div>
-                    <h3>Video Editor</h3>
-                    <p>Creating compelling visual stories on Sirius ShutterUp. Expertise in cinematic editing, color grading, and motion graphics.</p>
+                <div class="about-card tilt-card">
+                    <div class="card-glow"></div>
+                    <div class="icon" style="background: rgba(232,93,63,0.1); border-radius: 12px; padding: 12px; display: inline-block;"><img src="icons/video-editing.png" alt="Video Editor Icon" loading="lazy"></div>
+                    <h3 style="color: #F0F0F5;">Video Editor</h3>
+                    <p style="color: #8A8A95;">Creating compelling visual stories on Sirius ShutterUp. Expertise in cinematic editing, color grading, and motion graphics.</p>
                 </div>
-                <div class="about-card" data-tilt>
-                    <div class="icon"><img src="icons/photography.png" alt="Photographer Icon" loading="lazy"></div>
-                    <h3>Photographer</h3>
-                    <p>Capturing moments through the lens. Specializing in landscape, portrait, and creative photography with a unique artistic vision.</p>
+                <div class="about-card tilt-card">
+                    <div class="card-glow"></div>
+                    <div class="icon" style="background: rgba(232,93,63,0.1); border-radius: 12px; padding: 12px; display: inline-block;"><img src="icons/photography.png" alt="Photographer Icon" loading="lazy"></div>
+                    <h3 style="color: #F0F0F5;">Photographer</h3>
+                    <p style="color: #8A8A95;">Capturing moments through the lens. Specializing in landscape, portrait, and creative photography with a unique artistic vision.</p>
                 </div>
             </div>
             
-            <div class="achievements-block">
-                <h3><img src="icons/achievements.png" alt="Achievements" class="achievements-icon" loading="lazy"> Achievements</h3>
-                <ul>
-                    <li><strong>LeetCode:</strong> Solved 200+ problems across various difficulty levels</li>
-                    <li><strong>Amazon ML Summer School:</strong> Selected for and successfully completed the 2023 batch, mastering key machine learning concepts</li>
-                    <li><strong>Academic:</strong> B.Tech in Electronics and Telecommunication Engineering at IIEST Shibpur</li>
-                    <li><strong>Content Creation:</strong> Growing YouTube channel with creative video editing content</li>
-                    <li><strong>Technical Skills:</strong> Python, C++, Java, DSA, AI/ML, Backend Development</li>
-                </ul>
+            <div class="achievements-block section-reveal" style="margin-top: 4rem;">
+                <h3 style="margin-bottom: 2rem;"><img src="icons/achievements.png" alt="Achievements" class="achievements-icon" loading="lazy" style="vertical-align: middle;"> Achievements</h3>
+                
+                <div class="achievement-timeline-container">
+                    <div class="timeline-line"></div>
+                    <div class="achievement-timeline stagger-children">
+                        <div class="achievement-card">
+                            <span class="ach-icon">🏆</span>
+                            <span class="ach-year">2023</span>
+                            <h4>Amazon ML Summer School</h4>
+                            <p>Selected and completed</p>
+                        </div>
+                        <div class="achievement-card">
+                            <span class="ach-icon">⚡</span>
+                            <span class="ach-year">2024</span>
+                            <h4>200+ LeetCode</h4>
+                            <p>Problems solved</p>
+                        </div>
+                        <div class="achievement-card">
+                            <span class="ach-icon">🎓</span>
+                            <span class="ach-year">2021-25</span>
+                            <h4>IIEST Shibpur</h4>
+                            <p>B.Tech in E&TC</p>
+                        </div>
+                        <div class="achievement-card">
+                            <span class="ach-icon">🎬</span>
+                            <span class="ach-year">Present</span>
+                            <h4>YouTube Growth</h4>
+                            <p>Creative editing content</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
