@@ -1090,6 +1090,23 @@ window.addEventListener('DOMContentLoaded', () => {
     window.auraAgent = new AuraAgent();
     new CustomCursor();
 
+    // AURA HUD Toggle Logic
+    const agentHud = document.getElementById('agent-hud');
+    const auraClose = document.getElementById('aura-close');
+    const auraToggle = document.getElementById('aura-toggle');
+    
+    if (agentHud && auraClose && auraToggle) {
+        auraClose.addEventListener('click', (e) => {
+            e.stopPropagation(); // prevent bubbling if any
+            agentHud.classList.add('minimized');
+        });
+        
+        auraToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            agentHud.classList.remove('minimized');
+        });
+    }
+
     // Navbar scroll effect
     const navbar = document.getElementById('navbar');
     if (navbar) {

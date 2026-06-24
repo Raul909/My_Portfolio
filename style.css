@@ -142,11 +142,10 @@ body {
 
 .agent-hud {
     position: fixed;
-    top: 1.5rem;
-    left: 1.5rem;
+    bottom: 2.5rem;
+    left: 2.5rem;
     z-index: 50;
-    font-family: 'JetBrains Mono', monospace;
-    opacity: 0;
+    pointer-events: none;
     transform: translateX(-20px);
     transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -156,8 +155,63 @@ body {
     transform: translateX(0);
 }
 
+.agent-hud.minimized {
+    pointer-events: none !important;
+}
+
+.agent-hud.minimized .aura-container,
+.agent-hud.minimized .aura-link {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    pointer-events: none;
+}
+
+.agent-hud.minimized .aura-toggle {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.aura-toggle {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(14,14,20,0.9) 0%, rgba(7,7,12,0.95) 100%);
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    border: 1px solid var(--aura-color, rgba(255,255,255,0.1));
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.8);
+    pointer-events: none;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 10;
+}
+
+.aura-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px var(--aura-glow, transparent);
+}
+
+.aura-toggle-orb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--aura-color, #4A4A55);
+    box-shadow: 0 0 12px var(--aura-color, #4A4A55);
+    animation: aura-pulse 3s infinite ease-in-out;
+}
+
 .aura-container {
     position: relative;
+    pointer-events: auto;
     background: linear-gradient(135deg, rgba(14,14,20,0.9) 0%, rgba(7,7,12,0.95) 100%);
     backdrop-filter: blur(24px) saturate(1.2);
     -webkit-backdrop-filter: blur(24px) saturate(1.2);
@@ -168,6 +222,30 @@ body {
     transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     min-width: 220px;
     max-width: 280px;
+    transform-origin: bottom left;
+}
+
+.aura-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: transparent;
+    border: none;
+    color: #8A8A95;
+    cursor: pointer;
+    transition: color 0.2s, transform 0.2s;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 50%;
+}
+
+.aura-close:hover {
+    color: #F0F0F5;
+    transform: scale(1.1);
+    background: rgba(255,255,255,0.05);
 }
 
 .aura-orb {
@@ -255,6 +333,7 @@ body {
     white-space: pre;
 }
 
+
 .aura-engagement-text {
     display: flex;
     justify-content: space-between;
@@ -298,6 +377,8 @@ body {
     gap: 8px;
     margin-top: 12px;
     padding: 0 4px;
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transform-origin: top left;
 }
 
 .aura-link-dot {
