@@ -596,10 +596,17 @@ async function loadYouTubeVideos() {
     const container = document.getElementById('youtube-videos');
     container.innerHTML = '<p class="loading-text">Loading videos...</p>';
 
-    const ids = await fetchYouTubeFeed();
+    // Hardcoded list of long cinematic videos with proper thumbnails
+    const longVideoIds = [
+        'wugRU6GvD68', // SINHAGAD FORT
+        'edykfAgI6Jc', // Kumartuli 2023: Discovering Kolkata's Hidden Gem
+        'Iey_2E3rWpw', // College Days Ending...
+        'ZmNAsYlUNPo', // A Day in Kumortuli.
+        'wXemUTEDaIQ', // Serenity: A Peaceful Cinematic Video
+    ];
 
-    if (ids.length > 0) {
-        renderVideos(ids, container);
+    if (longVideoIds.length > 0) {
+        renderVideos(longVideoIds, container);
         
         // Auto-scroll ping-pong slider
         let direction = 1;
@@ -624,12 +631,6 @@ async function loadYouTubeVideos() {
                 }
             }, 30);
         });
-
-        // Refresh every 10 minutes
-        setInterval(async () => {
-            const fresh = await fetchYouTubeFeed();
-            if (fresh.length > 0) renderVideos(fresh, container);
-        }, 600000);
     } else {
         container.innerHTML = `
             <div class="empty-state">
