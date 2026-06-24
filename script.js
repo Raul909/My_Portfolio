@@ -603,6 +603,11 @@ async function loadYouTubeVideos() {
         'Iey_2E3rWpw', // College Days Ending...
         'ZmNAsYlUNPo', // A Day in Kumortuli.
         'wXemUTEDaIQ', // Serenity: A Peaceful Cinematic Video
+        '6q9LHVkWDrY',
+        'NVt3SjnknF8',
+        'SiGMTxQR21c',
+        'ICysoJgsHrA',
+        'BKmURA40_3k'
     ];
 
     if (longVideoIds.length > 0) {
