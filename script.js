@@ -10,14 +10,41 @@ if (asciiVideo && asciiCanvas) {
     // Density string from dark to light
     const density = "Ñ@#W$9876543210?!abc;:+=-,._ ";
     
+    // Detect hardware capabilities
+    const cores = navigator.hardwareConcurrency || 4;
+    const memory = navigator.deviceMemory || 4; // in GB
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+
+    let tier = 1; // 1: Low-end, 2: Mid-range, 3: High-end PC
+    if (cores >= 8 && memory >= 6) {
+        tier = isMobile ? 2 : 3; // High-end mobiles get Tier 2, PCs get Tier 3
+    } else if (cores >= 4 && memory >= 4) {
+        tier = 2; // Mid-range gets Tier 2
+    } else {
+        tier = 1; // Low-end gets Tier 1
+    }
+
     let fontSize = 10;
+    let targetFPS = 24;
+    
+    if (tier === 3) {
+        fontSize = 8;     // Ultra dense for high-end PCs
+        targetFPS = 24;   // Smooth cinematic 24 FPS
+    } else if (tier === 2) {
+        fontSize = 12;    // Balanced resolution for mid-range PCs and high-end mobile
+        targetFPS = 20;   // 20 FPS is lightweight and looks good
+    } else {
+        fontSize = 18;    // Lower resolution for low-end devices
+        targetFPS = 15;   // 15 FPS to conserve CPU
+    }
+
     let charWidth = fontSize * 0.6;
     let charHeight = fontSize;
     let cols = 0;
     let rows = 0;
     let isRendering = false;
     let lastFrameTime = 0;
-    const fpsInterval = 1000 / 30; // Limit to 30 FPS for performance
+    const fpsInterval = 1000 / targetFPS;
 
     function handleResize() {
         const width = asciiCanvas.offsetWidth;
@@ -29,14 +56,15 @@ if (asciiVideo && asciiCanvas) {
         asciiCanvas.width = width * dpr;
         asciiCanvas.height = height * dpr;
         
-        // Dynamically adjust font size based on screen size for density
+        // Dynamically adjust font size based on screen size + tier
+        let scaleFactor = 1;
         if (width < 768) {
-            fontSize = 12; // slightly larger font on mobile for speed
-        } else {
-            fontSize = 9;  // very dense font on desktop
+            scaleFactor = 1.4; // larger characters on mobile for spacing
         }
-        charWidth = fontSize * 0.6;
-        charHeight = fontSize;
+        
+        let currentFontSize = Math.round(fontSize * scaleFactor);
+        charWidth = currentFontSize * 0.6;
+        charHeight = currentFontSize;
         
         ctx.scale(dpr, dpr);
         
@@ -48,7 +76,6 @@ if (asciiVideo && asciiCanvas) {
     }
 
     window.addEventListener('resize', handleResize);
-    handleResize();
 
     function renderAscii(time) {
         if (asciiVideo.paused || asciiVideo.ended) {
@@ -81,7 +108,8 @@ if (asciiVideo && asciiCanvas) {
         ctx.fillRect(0, 0, asciiCanvas.width, asciiCanvas.height);
 
         // Prepare text rendering state
-        ctx.font = 'bold ' + fontSize + 'px monospace';
+        let currentFontSize = Math.round(charHeight);
+        ctx.font = 'bold ' + currentFontSize + 'px monospace';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
 
@@ -96,52 +124,67 @@ if (asciiVideo && asciiCanvas) {
                 if (a === 0) continue; // skip transparent pixels
 
                 const avg = (r + g + b) / 3;
-                
-                // Map brightness to character index
-                const charIdx = Math.floor((avg / 255) * (density.length - 1));
-                // Invert mapping: darker pixels are closer to the end (space), brighter are closer to index 0 (heavy characters)
-                const mappedCharIdx = (density.length - 1) - charIdx;
+                if (avg < 25) continue; // skip dark pixels for performance
+
+                // Map brightness [25, 255] to density characters (excluding space at the end)
+                const charIdx = Math.floor(((avg - 25) / 230) * (density.length - 2));
+                const mappedCharIdx = (density.length - 2) - Math.min(Math.max(charIdx, 0), density.length - 2);
                 const char = density[mappedCharIdx];
 
-                if (char !== ' ') {
-                    // Set color to pixel color
-                    ctx.fillStyle = `rgb(${r},${g},${b})`;
-                    ctx.fillText(char, x * charWidth, y * charHeight);
-                }
+                // Set color to pixel color
+                ctx.fillStyle = `rgb(${r},${g},${b})`;
+                ctx.fillText(char, x * charWidth, y * charHeight);
             }
         }
     }
 
-    asciiVideo.addEventListener('play', () => {
+    // Play/Pause dynamically based on intersection observer to save CPU when scrolled away
+    const viewObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                asciiVideo.play()
+                    .then(() => {
+                        handleResize();
+                        if (!isRendering) {
+                            isRendering = true;
+                            requestAnimationFrame(renderAscii);
+                        }
+                    })
+                    .catch(err => {
+                        console.log("Observer play blocked, waiting for user interaction:", err);
+                    });
+            } else {
+                asciiVideo.pause();
+                isRendering = false;
+            }
+        });
+    }, { threshold: 0.05 });
+
+    // Delay initialization until the page is fully loaded to maximize Lighthouse performance (TBT, FCP, LCP)
+    window.addEventListener('load', () => {
         handleResize();
-        if (!isRendering) {
-            isRendering = true;
-            requestAnimationFrame(renderAscii);
+        const homeSection = document.getElementById('home');
+        if (homeSection) {
+            viewObserver.observe(homeSection);
         }
     });
 
-    // Attempt autoplay programmatically
-    const startPlay = () => {
-        asciiVideo.play()
-            .then(() => {
-                handleResize();
-                if (!isRendering) {
-                    isRendering = true;
-                    requestAnimationFrame(renderAscii);
-                }
-            })
-            .catch(err => {
-                console.log("Autoplay blocked, waiting for user interaction:", err);
-            });
-    };
-
-    // Trigger initial play attempt with a slight delay
-    setTimeout(startPlay, 100);
-
-    // Interaction fallback
+    // Interaction fallback for autoplay policies
     const handleFirstInteraction = () => {
-        if (asciiVideo.paused) {
-            startPlay();
+        const homeSection = document.getElementById('home');
+        const rect = homeSection ? homeSection.getBoundingClientRect() : null;
+        const isHomeInView = rect ? (rect.bottom > 0 && rect.top < window.innerHeight) : false;
+
+        if (isHomeInView && asciiVideo.paused) {
+            asciiVideo.play()
+                .then(() => {
+                    handleResize();
+                    if (!isRendering) {
+                        isRendering = true;
+                        requestAnimationFrame(renderAscii);
+                    }
+                })
+                .catch(e => console.log(e));
         }
         document.removeEventListener('click', handleFirstInteraction);
         document.removeEventListener('touchstart', handleFirstInteraction);
