@@ -1224,9 +1224,8 @@ section.in-view {
     scrollbar-color: var(--primary) rgba(255, 255, 255, 0.05);
 }
 
-.videos-grid::-webkit-scrollbar { height: 6px; }
-.videos-grid::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
-.videos-grid::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+.videos-grid::-webkit-scrollbar { display: none; }
+.videos-grid { -ms-overflow-style: none; scrollbar-width: none; }
 
 .video-card {
     position: relative;

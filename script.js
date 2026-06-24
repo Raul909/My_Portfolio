@@ -600,6 +600,31 @@ async function loadYouTubeVideos() {
 
     if (ids.length > 0) {
         renderVideos(ids, container);
+        
+        // Auto-scroll ping-pong slider
+        let direction = 1;
+        let scrollInterval = setInterval(() => {
+            container.scrollLeft += direction;
+            if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 1) {
+                direction = -1;
+            } else if (container.scrollLeft <= 0) {
+                direction = 1;
+            }
+        }, 30);
+
+        container.addEventListener('mouseenter', () => clearInterval(scrollInterval));
+        container.addEventListener('mouseleave', () => {
+            clearInterval(scrollInterval); // Prevent multiple intervals
+            scrollInterval = setInterval(() => {
+                container.scrollLeft += direction;
+                if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 1) {
+                    direction = -1;
+                } else if (container.scrollLeft <= 0) {
+                    direction = 1;
+                }
+            }, 30);
+        });
+
         // Refresh every 10 minutes
         setInterval(async () => {
             const fresh = await fetchYouTubeFeed();
