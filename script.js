@@ -58,6 +58,14 @@ if (asciiVideo && asciiCanvas) {
 
         requestAnimationFrame(renderAscii);
 
+        // Check if canvas size matches offset size (handles initial load timing bugs)
+        const dpr = window.devicePixelRatio || 1;
+        const targetWidth = Math.floor(asciiCanvas.offsetWidth * dpr);
+        const targetHeight = Math.floor(asciiCanvas.offsetHeight * dpr);
+        if (asciiCanvas.width !== targetWidth || asciiCanvas.height !== targetHeight) {
+            handleResize();
+        }
+
         // Throttle frame rate
         const elapsed = time - lastFrameTime;
         if (elapsed < fpsInterval) return;
