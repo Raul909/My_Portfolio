@@ -604,10 +604,8 @@ async function loadYouTubeVideos() {
         'ZmNAsYlUNPo', // A Day in Kumortuli.
         'wXemUTEDaIQ', // Serenity: A Peaceful Cinematic Video
         '6q9LHVkWDrY',
-        'NVt3SjnknF8',
         'SiGMTxQR21c',
-        'ICysoJgsHrA',
-        'BKmURA40_3k'
+        'ICysoJgsHrA'
     ];
 
     if (longVideoIds.length > 0) {
