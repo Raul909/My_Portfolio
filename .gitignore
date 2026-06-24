@@ -15,3 +15,10 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Documentation (keep private)
+CHANGES.md
+DEPLOYMENT.md
+UPDATES.md
+implementation_plan.md
+preview.sh

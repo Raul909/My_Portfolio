@@ -18,19 +18,12 @@ sections.forEach(s => navObserver.observe(s));
 // Scroll progress
 const scrollProgress = document.getElementById('scroll-progress');
 const navbar = document.getElementById('navbar');
-const bgVideo = document.getElementById('bg-video');
 
 window.addEventListener('scroll', () => {
     const total = document.documentElement.scrollHeight - document.documentElement.clientHeight;
     scrollProgress.style.width = (window.scrollY / total * 100) + '%';
     navbar.classList.toggle('scrolled', window.scrollY > 50);
 
-    // Video parallax
-    if (bgVideo) {
-        const p = Math.min(window.scrollY / window.innerHeight, 1);
-        bgVideo.style.transform = `translate(-50%, -50%) scale(${1 + p * 0.12})`;
-        bgVideo.style.filter = `brightness(${0.5 - p * 0.2}) saturate(1.2)`;
-    }
 
     // Hero fade
     const heroContent = document.querySelector('.hero-content');
@@ -40,11 +33,6 @@ window.addEventListener('scroll', () => {
     }
 }, { passive: true });
 
-// Video speed
-if (bgVideo) {
-    bgVideo.playbackRate = 1.5;
-    bgVideo.addEventListener('loadedmetadata', () => { bgVideo.playbackRate = 1.5; });
-}
 
 // ─── Typing Animation ─────────────────────────────────────────────────────────
 
@@ -403,9 +391,9 @@ function openLightbox(images, startIndex) {
     document.addEventListener('keydown', onKey);
 }
 
-// ─── Contact Form ─────────────────────────────────────────────────────────────
+// ─── Contact Form (Netlify Forms) ─────────────────────────────────────────────
 
-document.getElementById('contact-form').addEventListener('submit', (e) => {
+document.getElementById('contact-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
     const msg = document.getElementById('form-message');
@@ -430,12 +418,26 @@ document.getElementById('contact-form').addEventListener('submit', (e) => {
     btn.textContent = 'Sending...';
     btn.disabled = true;
 
-    setTimeout(() => {
-        msg.textContent = "Thanks for your message! I'll get back to you soon.";
-        msg.className = 'form-message success';
-        form.reset();
-        btn.textContent = orig;
-        btn.disabled = false;
-        setTimeout(() => { msg.className = 'form-message'; }, 5000);
-    }, 1000);
+    try {
+        const res = await fetch('/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(new FormData(form)).toString()
+        });
+
+        if (res.ok) {
+            msg.textContent = "✓ Message sent! I'll get back to you soon.";
+            msg.className = 'form-message success';
+            form.reset();
+        } else {
+            throw new Error('Network response was not ok');
+        }
+    } catch {
+        msg.textContent = '✗ Something went wrong. Try emailing directly.';
+        msg.className = 'form-message error';
+    }
+
+    btn.textContent = orig;
+    btn.disabled = false;
+    setTimeout(() => { msg.className = 'form-message'; }, 5000);
 });
