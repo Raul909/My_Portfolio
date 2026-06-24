@@ -476,7 +476,7 @@ async function fetchGitHubRepos() {
     container.innerHTML = '<p class="loading-text">Loading projects...</p>';
 
     try {
-        const res = await fetch('https://api.github.com/users/Raul909/repos?sort=updated&per_page=12');
+        const res = await fetch('https://api.github.com/users/Raul5756/repos?sort=updated&per_page=12');
         if (!res.ok) throw new Error('GitHub API error');
         const repos = await res.json();
 
@@ -528,7 +528,7 @@ async function fetchGitHubRepos() {
         observeCards();
         add3DTiltEffect();
     } catch {
-        container.innerHTML = `<p class="error-text">Unable to load projects. Visit <a href="https://github.com/Raul909" target="_blank" rel="noopener noreferrer">GitHub →</a></p>`;
+        container.innerHTML = `<p class="error-text">Unable to load projects. Visit <a href="https://github.com/Raul5756" target="_blank" rel="noopener noreferrer">GitHub →</a></p>`;
     }
 }
 
