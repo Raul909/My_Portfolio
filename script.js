@@ -1089,24 +1089,16 @@ window.addEventListener('DOMContentLoaded', () => {
     window.auraAgent = new AuraAgent();
     new CustomCursor();
 
-    // Floating Nav Visibility
-    const nav = document.querySelector('.floating-nav');
-    if (nav) {
+    // Navbar scroll effect
+    const navbar = document.getElementById('navbar');
+    if (navbar) {
         window.addEventListener('scroll', () => {
-            if (window.scrollY > 100) {
-                nav.style.background = 'rgba(14, 14, 20, 0.85)';
-                nav.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
             } else {
-                nav.style.background = 'rgba(14, 14, 20, 0.4)';
-                nav.style.borderColor = 'transparent';
+                navbar.classList.remove('scrolled');
             }
         });
-        
-        // Initial setup
-        if (window.scrollY <= 100) {
-            nav.style.background = 'rgba(14, 14, 20, 0.4)';
-            nav.style.borderColor = 'transparent';
-        }
     }
 
     // Section Reveals
