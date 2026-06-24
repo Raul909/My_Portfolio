@@ -227,12 +227,13 @@ body {
     letter-spacing: 0.05em;
     line-height: 1.4;
     text-shadow: 0 0 40px rgba(0, 212, 255, 0.15);
+    margin-bottom: 2rem;
 }
 
 .typing-container {
     font-size: clamp(1rem, 2.5vw, 1.4rem);
     color: var(--muted);
-    margin: 1.5rem 0;
+    margin: 2.5rem 0 1.5rem 0;
     min-height: 2em;
 }
 
@@ -413,6 +414,16 @@ section.in-view {
     margin-bottom: 1.5rem;
     font-size: 1.3rem;
     font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.achievements-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    filter: invert(1) drop-shadow(0 0 4px rgba(255, 255, 255, 0.2));
 }
 
 .achievements-block ul {

@@ -50,7 +50,7 @@
 
     <section id="home" class="hero">
         <div id="ascii-bg" aria-hidden="true" role="presentation">
-            <video id="hidden-video" src="bg-video.mp4" autoplay loop muted playsinline style="display: none;"></video>
+            <video id="hidden-video" src="bg-video.mp4" autoplay loop muted playsinline style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: -9999;"></video>
             <pre id="ascii-canvas"></pre>
         </div>
         <div class="hero-overlay" aria-hidden="true"></div>
@@ -90,9 +90,10 @@
             </div>
             
             <div class="achievements-block">
-                <h3>🏆 Achievements</h3>
+                <h3><img src="icons/achievements.png" alt="Achievements" class="achievements-icon"> Achievements</h3>
                 <ul>
                     <li><strong>LeetCode:</strong> Solved 200+ problems across various difficulty levels</li>
+                    <li><strong>Amazon ML Summer School:</strong> Selected for and successfully completed the 2023 batch, mastering key machine learning concepts</li>
                     <li><strong>Academic:</strong> B.Tech in Electronics and Telecommunication Engineering at IIEST Shibpur</li>
                     <li><strong>Content Creation:</strong> Growing YouTube channel with creative video editing content</li>
                     <li><strong>Technical Skills:</strong> Python, C++, Java, DSA, AI/ML, Backend Development</li>

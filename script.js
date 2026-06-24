@@ -12,18 +12,35 @@ if (asciiVideo && asciiCanvas) {
     // Resolution of ASCII grid
     const asciiWidth = 100;
     let asciiHeight = 50;
+    let isRendering = false;
 
-    asciiVideo.addEventListener('loadedmetadata', () => {
+    function initCanvas() {
+        if (!asciiVideo.videoWidth) return;
         const ratio = asciiVideo.videoHeight / asciiVideo.videoWidth;
         // Adjust height to account for monospace font aspect ratio (~0.5)
         asciiHeight = Math.floor(asciiWidth * ratio * 0.5);
         canvas.width = asciiWidth;
         canvas.height = asciiHeight;
+    }
+
+    if (asciiVideo.readyState >= 1) {
+        initCanvas();
+    } else {
+        asciiVideo.addEventListener('loadedmetadata', initCanvas);
+    }
+
+    // Force call initCanvas on play/playing just in case metadata was delayed
+    asciiVideo.addEventListener('play', () => {
+        initCanvas();
+        if (!isRendering) {
+            isRendering = true;
+            renderAscii();
+        }
     });
 
     function renderAscii() {
         if (asciiVideo.paused || asciiVideo.ended) {
-            requestAnimationFrame(renderAscii);
+            isRendering = false;
             return;
         }
 
@@ -54,9 +71,33 @@ if (asciiVideo && asciiCanvas) {
         return (value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
     }
 
-    asciiVideo.addEventListener('play', () => {
-        renderAscii();
-    });
+    // Attempt autoplay programmatically
+    const startPlay = () => {
+        asciiVideo.play()
+            .then(() => {
+                initCanvas();
+                if (!isRendering) {
+                    isRendering = true;
+                    renderAscii();
+                }
+            })
+            .catch(err => {
+                console.log("Autoplay blocked, waiting for user interaction:", err);
+            });
+    };
+
+    startPlay();
+
+    // Interaction fallback to start playback if blocked by autoplay policies
+    const handleFirstInteraction = () => {
+        if (asciiVideo.paused) {
+            startPlay();
+        }
+        document.removeEventListener('click', handleFirstInteraction);
+        document.removeEventListener('touchstart', handleFirstInteraction);
+    };
+    document.addEventListener('click', handleFirstInteraction);
+    document.addEventListener('touchstart', handleFirstInteraction);
 }
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
