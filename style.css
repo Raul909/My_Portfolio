@@ -375,9 +375,15 @@ section.in-view {
 }
 
 .about-card .icon {
-    font-size: 2.5rem;
     margin-bottom: 1.25rem;
     display: block;
+}
+
+.about-card .icon img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    filter: invert(1) drop-shadow(0 0 4px rgba(255,255,255,0.2));
 }
 
 .about-card h3 {
@@ -910,6 +916,21 @@ footer {
     border-top: 1px solid var(--border);
     color: var(--muted);
     font-size: 0.9rem;
+}
+
+.attributions {
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+.attributions a {
+    color: var(--muted);
+    text-decoration: none;
+}
+
+.attributions a:hover {
+    color: var(--light);
 }
 
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
