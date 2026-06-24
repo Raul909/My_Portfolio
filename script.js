@@ -1,200 +1,244 @@
 // ─── ASCII Video Background ───────────────────────────────────────────────────
-const asciiVideo = document.getElementById('hidden-video');
-const asciiCanvas = document.getElementById('ascii-canvas');
 
-if (asciiVideo && asciiCanvas) {
-    const ctx = asciiCanvas.getContext('2d', { alpha: false });
-    const offscreenCanvas = document.createElement('canvas');
-    const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
-    
-    // Density string from dark to light
-    const density = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. ";
-    
-    // Detect hardware capabilities
-    const cores = navigator.hardwareConcurrency || 4;
-    const memory = navigator.deviceMemory || 4; // in GB
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+class AsciiRenderer {
+    constructor(videoId, canvasId, sectionId, tier, options = {}) {
+        this.video = document.getElementById(videoId);
+        this.canvas = document.getElementById(canvasId);
+        this.section = document.getElementById(sectionId);
+        
+        if (!this.video || !this.canvas || !this.section) return;
 
-    let tier = 1; // 1: Low-end, 2: Mid-range, 3: High-end
-    if (cores >= 8 && memory >= 6) {
-        tier = 3; // High-end laptops, PCs and mobiles get Tier 3
-    } else if (cores >= 4 && memory >= 4) {
-        tier = 2; // Mid-range gets Tier 2
-    } else {
-        tier = 1; // Low-end gets Tier 1
+        this.ctx = this.canvas.getContext('2d', { alpha: false });
+        this.offscreenCanvas = document.createElement('canvas');
+        this.offscreenCtx = this.offscreenCanvas.getContext('2d', { willReadFrequently: true });
+        
+        // Density string from dark to light
+        this.density = options.density || "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. ";
+        this.tier = tier;
+        
+        // Settings based on device tiers
+        if (this.tier === 3) {
+            this.fontSize = options.fontSize3 || 6;       // Ultra dense
+            this.targetFPS = options.fps3 || 60;          // Smooth 60 FPS
+            this.video.playbackRate = options.speed3 || 1.2;
+        } else if (this.tier === 2) {
+            this.fontSize = options.fontSize2 || 12;      // Balanced
+            this.targetFPS = options.fps2 || 24;          // 24 FPS
+            this.video.playbackRate = options.speed2 || 1.0;
+        } else {
+            this.fontSize = options.fontSize1 || 18;      // Low-res
+            this.targetFPS = options.fps1 || 15;          // 15 FPS
+            this.video.playbackRate = options.speed1 || 0.8;
+        }
+
+        this.charWidth = this.fontSize * 0.6;
+        this.charHeight = this.fontSize;
+        this.cols = 0;
+        this.rows = 0;
+        this.isRendering = false;
+        this.lastFrameTime = 0;
+        this.fpsInterval = 1000 / this.targetFPS;
+
+        this.handleResize = this.handleResize.bind(this);
+        this.render = this.render.bind(this);
+        
+        window.addEventListener('resize', this.handleResize);
+        
+        // Observe section visibility to play/pause video dynamically
+        this.observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    this.video.play()
+                        .then(() => {
+                            this.handleResize();
+                            if (!this.isRendering) {
+                                this.isRendering = true;
+                                requestAnimationFrame(this.render);
+                            }
+                        })
+                        .catch(err => {
+                            console.log(`Observer play blocked for ${videoId}:`, err);
+                        });
+                } else {
+                    this.video.pause();
+                    this.isRendering = false;
+                }
+            });
+        }, { threshold: 0.02 });
+        
+        if (document.readyState === 'complete') {
+            this.observer.observe(this.section);
+        } else {
+            window.addEventListener('load', () => {
+                this.handleResize();
+                this.observer.observe(this.section);
+            });
+        }
+
+        // Interaction fallback for autoplay policies
+        const handleInteraction = () => {
+            const rect = this.section.getBoundingClientRect();
+            const inView = rect.bottom > 0 && rect.top < window.innerHeight;
+            if (inView && this.video.paused) {
+                this.video.play()
+                    .then(() => {
+                        this.handleResize();
+                        if (!this.isRendering) {
+                            this.isRendering = true;
+                            requestAnimationFrame(this.render);
+                        }
+                    })
+                    .catch(e => console.log(e));
+            }
+            document.removeEventListener('click', handleInteraction);
+            document.removeEventListener('touchstart', handleInteraction);
+        };
+        document.addEventListener('click', handleInteraction);
+        document.addEventListener('touchstart', handleInteraction);
     }
 
-    let fontSize = 10;
-    let targetFPS = 24;
-    
-    if (tier === 3) {
-        fontSize = 6;     // Ultra dense for high-end devices
-        targetFPS = 60;   // Smooth 60 FPS
-        if (asciiVideo) asciiVideo.playbackRate = 1.5; // Fast forward slightly for a cooler effect
-    } else if (tier === 2) {
-        fontSize = 12;    // Balanced resolution for mid-range PCs and mobile
-        targetFPS = 20;   // 20 FPS is lightweight and looks good
-        if (asciiVideo) asciiVideo.playbackRate = 1.0;
-    } else {
-        fontSize = 18;    // Lower resolution for low-end devices
-        targetFPS = 15;   // 15 FPS to conserve CPU
-        if (asciiVideo) asciiVideo.playbackRate = 0.8;
-    }
-
-    let charWidth = fontSize * 0.6;
-    let charHeight = fontSize;
-    let cols = 0;
-    let rows = 0;
-    let isRendering = false;
-    let lastFrameTime = 0;
-    const fpsInterval = 1000 / targetFPS;
-
-    function handleResize() {
-        const width = asciiCanvas.offsetWidth;
-        const height = asciiCanvas.offsetHeight;
+    handleResize() {
+        const width = this.canvas.offsetWidth;
+        const height = this.canvas.offsetHeight;
         if (!width || !height) return;
-        
-        // Handle device pixel ratio for sharp rendering on retina screens
+
         const dpr = window.devicePixelRatio || 1;
-        asciiCanvas.width = width * dpr;
-        asciiCanvas.height = height * dpr;
-        
-        // Dynamically adjust font size based on screen size + tier
+        this.canvas.width = width * dpr;
+        this.canvas.height = height * dpr;
+
         let scaleFactor = 1;
         if (width < 768) {
-            scaleFactor = 1.4; // larger characters on mobile for spacing
+            scaleFactor = 1.3; // slightly larger font scale on mobile for readability
         }
-        
-        let currentFontSize = Math.round(fontSize * scaleFactor);
-        charWidth = currentFontSize * 0.6;
-        charHeight = currentFontSize;
-        
-        ctx.scale(dpr, dpr);
-        
-        cols = Math.floor(width / charWidth);
-        rows = Math.floor(height / charHeight);
-        
-        offscreenCanvas.width = cols;
-        offscreenCanvas.height = rows;
+
+        const currentFontSize = Math.round(this.fontSize * scaleFactor);
+        this.charWidth = currentFontSize * 0.6;
+        this.charHeight = currentFontSize;
+
+        this.ctx.scale(dpr, dpr);
+
+        this.cols = Math.floor(width / this.charWidth);
+        this.rows = Math.floor(height / this.charHeight);
+
+        this.offscreenCanvas.width = this.cols;
+        this.offscreenCanvas.height = this.rows;
     }
 
-    window.addEventListener('resize', handleResize);
-
-    function renderAscii(time) {
-        if (asciiVideo.paused || asciiVideo.ended) {
-            isRendering = false;
+    render(time) {
+        if (this.video.paused || this.video.ended) {
+            this.isRendering = false;
             return;
         }
 
-        requestAnimationFrame(renderAscii);
+        requestAnimationFrame(this.render);
 
-        // Check if canvas size matches offset size (handles initial load timing bugs)
         const dpr = window.devicePixelRatio || 1;
-        const targetWidth = Math.floor(asciiCanvas.offsetWidth * dpr);
-        const targetHeight = Math.floor(asciiCanvas.offsetHeight * dpr);
-        if (asciiCanvas.width !== targetWidth || asciiCanvas.height !== targetHeight) {
-            handleResize();
+        const targetWidth = Math.floor(this.canvas.offsetWidth * dpr);
+        const targetHeight = Math.floor(this.canvas.offsetHeight * dpr);
+        if (this.canvas.width !== targetWidth || this.canvas.height !== targetHeight) {
+            this.handleResize();
         }
 
-        // Throttle frame rate
-        const elapsed = time - lastFrameTime;
-        if (elapsed < fpsInterval) return;
-        lastFrameTime = time - (elapsed % fpsInterval);
+        const elapsed = time - this.lastFrameTime;
+        if (elapsed < this.fpsInterval) return;
+        this.lastFrameTime = time - (elapsed % this.fpsInterval);
 
-        // Draw current video frame scaled down to grid size
-        offscreenCtx.drawImage(asciiVideo, 0, 0, cols, rows);
-        const imageData = offscreenCtx.getImageData(0, 0, cols, rows);
+        // 1. Draw video downscaled to offscreen canvas
+        this.offscreenCtx.drawImage(this.video, 0, 0, this.cols, this.rows);
+        const imageData = this.offscreenCtx.getImageData(0, 0, this.cols, this.rows);
         const data = imageData.data;
 
-        // Clear canvas with dark background matching --bg
-        ctx.fillStyle = '#080808';
-        ctx.fillRect(0, 0, asciiCanvas.width, asciiCanvas.height);
+        // 2. Clear canvas with transparent pixels (crucial for source-in masking)
+        const w = this.canvas.offsetWidth;
+        const h = this.canvas.offsetHeight;
+        this.ctx.clearRect(0, 0, w, h);
 
-        // Prepare text rendering state
-        let currentFontSize = Math.round(charHeight);
-        ctx.font = 'bold ' + currentFontSize + 'px monospace';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
+        // 3. Draw white characters
+        this.ctx.fillStyle = '#ffffff';
+        const currentFontSize = Math.round(this.charHeight);
+        this.ctx.font = 'bold ' + currentFontSize + 'px monospace';
+        this.ctx.textAlign = 'left';
+        this.ctx.textBaseline = 'top';
 
-        for (let y = 0; y < rows; y++) {
-            for (let x = 0; x < cols; x++) {
-                const idx = (y * cols + x) * 4;
+        for (let y = 0; y < this.rows; y++) {
+            for (let x = 0; x < this.cols; x++) {
+                const idx = (y * this.cols + x) * 4;
                 const r = data[idx];
                 const g = data[idx+1];
                 const b = data[idx+2];
                 const a = data[idx+3];
 
-                if (a === 0) continue; // skip transparent pixels
+                if (a === 0) continue;
 
                 const avg = (r + g + b) / 3;
-                if (avg < 25) continue; // skip dark pixels for performance
+                if (avg < 20) continue; // skip very dark pixels to keep good contrast
 
-                // Map brightness [25, 255] to density characters (excluding space at the end)
-                const charIdx = Math.floor(((avg - 25) / 230) * (density.length - 2));
-                const mappedCharIdx = (density.length - 2) - Math.min(Math.max(charIdx, 0), density.length - 2);
-                const char = density[mappedCharIdx];
+                const charIdx = Math.floor(((avg - 20) / 235) * (this.density.length - 2));
+                const mappedCharIdx = (this.density.length - 2) - Math.min(Math.max(charIdx, 0), this.density.length - 2);
+                const char = this.density[mappedCharIdx];
 
-                // Set color to pixel color
-                ctx.fillStyle = `rgb(${r},${g},${b})`;
-                ctx.fillText(char, x * charWidth, y * charHeight);
+                this.ctx.fillText(char, x * this.charWidth, y * this.charHeight);
             }
         }
+
+        // 4. Color the text using GPU compositing (mask text with pixelated video frame)
+        this.ctx.globalCompositeOperation = 'source-in';
+        this.ctx.imageSmoothingEnabled = false;
+        this.ctx.webkitImageSmoothingEnabled = false;
+        this.ctx.mozImageSmoothingEnabled = false;
+        this.ctx.msImageSmoothingEnabled = false;
+        this.ctx.drawImage(this.offscreenCanvas, 0, 0, w, h);
+
+        // 5. Draw solid dark background behind the colored text
+        this.ctx.globalCompositeOperation = 'destination-over';
+        this.ctx.fillStyle = '#080808';
+        this.ctx.fillRect(0, 0, w, h);
+
+        // 6. Reset composite mode and image smoothing to default
+        this.ctx.globalCompositeOperation = 'source-over';
+        this.ctx.imageSmoothingEnabled = true;
+        this.ctx.webkitImageSmoothingEnabled = true;
+        this.ctx.mozImageSmoothingEnabled = true;
+        this.ctx.msImageSmoothingEnabled = true;
     }
-
-    // Play/Pause dynamically based on intersection observer to save CPU when scrolled away
-    const viewObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                asciiVideo.play()
-                    .then(() => {
-                        handleResize();
-                        if (!isRendering) {
-                            isRendering = true;
-                            requestAnimationFrame(renderAscii);
-                        }
-                    })
-                    .catch(err => {
-                        console.log("Observer play blocked, waiting for user interaction:", err);
-                    });
-            } else {
-                asciiVideo.pause();
-                isRendering = false;
-            }
-        });
-    }, { threshold: 0.05 });
-
-    // Delay initialization until the page is fully loaded to maximize Lighthouse performance (TBT, FCP, LCP)
-    window.addEventListener('load', () => {
-        handleResize();
-        const homeSection = document.getElementById('home');
-        if (homeSection) {
-            viewObserver.observe(homeSection);
-        }
-    });
-
-    // Interaction fallback for autoplay policies
-    const handleFirstInteraction = () => {
-        const homeSection = document.getElementById('home');
-        const rect = homeSection ? homeSection.getBoundingClientRect() : null;
-        const isHomeInView = rect ? (rect.bottom > 0 && rect.top < window.innerHeight) : false;
-
-        if (isHomeInView && asciiVideo.paused) {
-            asciiVideo.play()
-                .then(() => {
-                    handleResize();
-                    if (!isRendering) {
-                        isRendering = true;
-                        requestAnimationFrame(renderAscii);
-                    }
-                })
-                .catch(e => console.log(e));
-        }
-        document.removeEventListener('click', handleFirstInteraction);
-        document.removeEventListener('touchstart', handleFirstInteraction);
-    };
-    document.addEventListener('click', handleFirstInteraction);
-    document.addEventListener('touchstart', handleFirstInteraction);
 }
+
+// Determine hardware tier once
+const cores = navigator.hardwareConcurrency || 4;
+const memory = navigator.deviceMemory || 4;
+let hardwareTier = 1;
+if (cores >= 8 && memory >= 6) {
+    hardwareTier = 3; // High-end
+} else if (cores >= 4 && memory >= 4) {
+    hardwareTier = 2; // Mid-range
+} else {
+    hardwareTier = 1; // Low-end
+}
+
+// Initialize ASCII video backgrounds
+new AsciiRenderer('hidden-video', 'ascii-canvas', 'home', hardwareTier, {
+    fontSize3: 6,
+    fps3: 60,
+    speed3: 1.5, // slightly sped up for hero aesthetics
+    fontSize2: 12,
+    fps2: 24,
+    speed2: 1.0,
+    fontSize1: 18,
+    fps1: 15,
+    speed1: 0.8
+});
+
+new AsciiRenderer('video-editing-bg-video', 'video-editing-canvas', 'videos', hardwareTier, {
+    fontSize3: 6,
+    fps3: 45,    // smooth 45fps on high-end
+    speed3: 1.0,
+    fontSize2: 12,
+    fps2: 24,
+    speed2: 1.0,
+    fontSize1: 18,
+    fps1: 15,
+    speed1: 0.8
+});
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
