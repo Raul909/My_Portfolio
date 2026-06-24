@@ -1,7 +1,3 @@
-[build]
-  publish = "."
-  command = "echo 'No build needed - static site'"
-
 
 [[headers]]
   for = "/*"
