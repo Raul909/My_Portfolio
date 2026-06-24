@@ -5,21 +5,23 @@
 }
 
 :root {
-    --bg: #080808;
-    --bg-transparent: rgba(8, 8, 8, 0);
-    --bg-card: rgba(18, 18, 18, 0.85);
-    --text-primary: #f0f0f0;
-    --text-secondary: #888888;
-    --accent: #00d4ff;
-    --accent-dark: #00a8cc;
-    --accent-dim: rgba(0, 212, 255, 0.12);
+    --bg: #0A0A0F;
+    --bg-transparent: rgba(10, 10, 15, 0);
+    --bg-card: rgba(18, 18, 26, 0.7);
+    --text-primary: #F8F9FA;
+    --text-secondary: #A1A1AA;
+    --accent: #FF6B35;
+    --accent-dark: #cc562a;
+    --accent-secondary: #00D4AA;
+    --accent-tertiary: #6366F1;
+    --accent-dim: rgba(255, 107, 53, 0.12);
     --surface: rgba(255, 255, 255, 0.04);
     --surface-hover: rgba(255, 255, 255, 0.07);
-    --border: rgba(255, 255, 255, 0.07);
-    --border-active: rgba(0, 212, 255, 0.5);
-    --light: #f0f0f0;
-    --muted: rgba(240, 240, 240, 0.6);
-    --gradient: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    --border: rgba(255, 255, 255, 0.06);
+    --border-active: rgba(255, 107, 53, 0.5);
+    --light: #F8F9FA;
+    --muted: #52525B;
+    --gradient: linear-gradient(135deg, var(--accent) 0%, var(--accent-tertiary) 100%);
 }
 
 .light-theme {
@@ -43,12 +45,144 @@ html { scroll-behavior: smooth; }
 
 body {
     font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg);
-    color: var(--light);
-    overflow-x: hidden;
+    background-color: var(--bg);
+    color: var(--text-primary);
     line-height: 1.6;
+    overflow-x: hidden;
+    cursor: none; /* Hide default cursor for custom one */
     opacity: 0;
     animation: fadeInPage 0.6s ease forwards;
+}
+
+/* ─── Glassmorphism & Custom Elements ─────────────────────────────────────── */
+
+.glass-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.gradient-text {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ─── Custom Cursor ───────────────────────────────────────────────────────── */
+
+.custom-cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 9999;
+    mix-blend-mode: difference;
+}
+
+.cursor-dot {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    width: 20px;
+    height: 20px;
+    background-color: var(--accent);
+    border-radius: 50%;
+    opacity: 0.8;
+    transition: transform 0.15s ease-out;
+}
+
+.cursor-ring {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    width: 20px;
+    height: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    animation: cursor-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes cursor-ping {
+    75%, 100% {
+        transform: scale(2.5);
+        opacity: 0;
+    }
+}
+
+/* ─── Agent HUD ───────────────────────────────────────────────────────────── */
+
+.agent-hud {
+    position: absolute;
+    top: 2rem;
+    left: 2rem;
+    z-index: 10;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    max-width: 24rem;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.agent-hud.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.agent-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.agent-status-indicator {
+    width: 0.75rem;
+    height: 0.75rem;
+    background-color: var(--accent-secondary);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent-secondary);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.agent-hud h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+.agent-message {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 0.75rem;
+}
+
+.agent-ascii {
+    color: var(--accent-tertiary);
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+    white-space: pre-wrap;
+}
+
+.agent-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
 }
 
 @keyframes fadeInPage { to { opacity: 1; } }

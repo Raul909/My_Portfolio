@@ -25,11 +25,31 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Rock+Salt&family=Inter:wght@400;500;600;700&display=swap" as="style">
-    <link href="https://fonts.googleapis.com/css2?family=Rock+Salt&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Rock+Salt&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" as="style">
+    <link href="https://fonts.googleapis.com/css2?family=Rock+Salt&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Custom Cursor -->
+    <div id="custom-cursor" class="custom-cursor" aria-hidden="true">
+        <div class="cursor-dot"></div>
+        <div class="cursor-ring"></div>
+    </div>
+
+    <!-- Agent HUD -->
+    <div id="agent-hud" class="agent-hud glass-card" aria-hidden="true">
+        <div class="agent-header">
+            <div class="agent-status-indicator"></div>
+            <h3 id="agent-name">AURA</h3>
+        </div>
+        <p id="agent-message" class="agent-message">Move your cursor to awaken the agent...</p>
+        <pre id="agent-ascii" class="agent-ascii"></pre>
+        <div class="agent-footer">
+            <span id="agent-mood">Mood: calm</span>
+            <span id="agent-engagement">Engagement: 0%</span>
+        </div>
+    </div>
+
     <div id="scroll-progress" aria-hidden="true"></div>
     <nav id="navbar" role="navigation" aria-label="Main navigation">
         <div class="nav-content">

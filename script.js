@@ -42,8 +42,18 @@ class AsciiRenderer {
 
         this.handleResize = this.handleResize.bind(this);
         this.render = this.render.bind(this);
+        this.handleMouseMove = this.handleMouseMove.bind(this);
         
         window.addEventListener('resize', this.handleResize);
+        if (this.canvas) {
+            window.addEventListener('mousemove', this.handleMouseMove);
+            this.canvas.addEventListener('mouseleave', () => { this.mouseX = -1000; this.mouseY = -1000; });
+        }
+
+        this.mouseX = -1000;
+        this.mouseY = -1000;
+        this.targetMouseX = -1000;
+        this.targetMouseY = -1000;
         
         // Observe section visibility to play/pause video dynamically
         this.observer = new IntersectionObserver((entries) => {
@@ -125,7 +135,25 @@ class AsciiRenderer {
         this.offscreenCanvas.height = this.rows;
     }
 
+    handleMouseMove(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        this.targetMouseX = e.clientX - rect.left;
+        this.targetMouseY = e.clientY - rect.top;
+        
+        // Notify AURA agent if exists
+        if (window.auraAgent) {
+            const velocity = Math.sqrt(e.movementX**2 + e.movementY**2);
+            window.auraAgent.processInteraction(velocity);
+        }
+    }
+
     render(time) {
+        if (!this.isRendering) return;
+
+        // Smooth mouse interpolation
+        this.mouseX += (this.targetMouseX - this.mouseX) * 0.15;
+        this.mouseY += (this.targetMouseY - this.mouseY) * 0.15;
+
         if (this.video.paused || this.video.ended) {
             this.isRendering = false;
             return;
@@ -183,7 +211,23 @@ class AsciiRenderer {
                     const mappedCharIdx = (this.density.length - 2) - Math.min(Math.max(charIdx, 0), this.density.length - 2);
                     const char = this.density[mappedCharIdx];
 
-                    this.ctx.fillText(char, x * this.charWidth, y * this.charHeight);
+                    let drawX = x * this.charWidth;
+                    let drawY = y * this.charHeight;
+
+                    // Mouse Interaction Physics (Repulsion)
+                    const dx = drawX - this.mouseX;
+                    const dy = drawY - this.mouseY;
+                    const distSq = dx * dx + dy * dy;
+                    const radius = 150;
+                    
+                    if (distSq < radius * radius && distSq > 0) {
+                        const dist = Math.sqrt(distSq);
+                        const force = (radius - dist) / radius;
+                        drawX += (dx / dist) * force * 30; // Push strength
+                        drawY += (dy / dist) * force * 30;
+                    }
+
+                    this.ctx.fillText(char, drawX, drawY);
                 }
             }
 
@@ -215,8 +259,24 @@ class AsciiRenderer {
                     const mappedCharIdx = (this.density.length - 2) - Math.min(Math.max(charIdx, 0), this.density.length - 2);
                     const char = this.density[mappedCharIdx];
 
-                    this.ctx.fillStyle = `rgb(${r},${g},${b})`;
-                    this.ctx.fillText(char, x * this.charWidth, y * this.charHeight);
+                    let drawX = x * this.charWidth;
+                    let drawY = y * this.charHeight;
+
+                    // Mouse Interaction Physics
+                    const dx = drawX - this.mouseX;
+                    const dy = drawY - this.mouseY;
+                    const distSq = dx * dx + dy * dy;
+                    const radius = 150;
+                    
+                    if (distSq < radius * radius && distSq > 0) {
+                        const dist = Math.sqrt(distSq);
+                        const force = (radius - dist) / radius;
+                        drawX += (dx / dist) * force * 30;
+                        drawY += (dy / dist) * force * 30;
+                    }
+
+                    this.ctx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
+                    this.ctx.fillText(char, drawX, drawY);
                 }
             }
         }
@@ -726,4 +786,133 @@ themeToggle.addEventListener('click', () => {
         theme = 'light';
     }
     localStorage.setItem('theme', theme);
+});
+
+// ─── AURA AI Agent & Custom Cursor ──────────────────────────────────────────
+
+class AuraAgent {
+    constructor() {
+        this.hud = document.getElementById('agent-hud');
+        this.nameEl = document.getElementById('agent-name');
+        this.messageEl = document.getElementById('agent-message');
+        this.asciiEl = document.getElementById('agent-ascii');
+        this.moodEl = document.getElementById('agent-mood');
+        this.engagementEl = document.getElementById('agent-engagement');
+        
+        this.engagement = 0;
+        this.interactionCount = 0;
+        this.mood = "calm";
+        this.lastInteraction = Date.now();
+        this.wakeUpTimeout = null;
+        
+        this.responses = {
+            hover: ["I see you...", "Interesting choice...", "The pixels whisper..."],
+            click: ["*ripples*", "A disturbance in the force!", "You touched the void!"],
+            idle: ["Waiting...", "The ASCII dreams...", "Static hums..."],
+            rapid: ["So fast!", "Your cursor dances!", "Energy surge detected!"]
+        };
+
+        this.arts = {
+            calm: "  ★  .  ·  ˚  ✦\n    ·  AURA  ·\n  ✦  ·  .  ★",
+            excited: "  ╔════════════╗\n  ║ WATCHING YOU ║\n  ╚════════════╝",
+            curious: "  ░░░░░░░░░░░░░░\n  ░░  DEEP  ░░\n  ░░░░░░░░░░░░░░"
+        };
+        
+        this.updateHUD();
+        
+        // Decay engagement over time
+        setInterval(() => {
+            if (Date.now() - this.lastInteraction > 3000 && this.engagement > 0) {
+                this.engagement = Math.max(0, this.engagement - 2);
+                this.mood = this.engagement < 10 ? "calm" : "curious";
+                this.updateHUD();
+            }
+        }, 1000);
+    }
+
+    processInteraction(velocity, isClick = false) {
+        this.lastInteraction = Date.now();
+        this.interactionCount++;
+        this.engagement = Math.min(100, this.engagement + (isClick ? 10 : 1));
+        
+        if (this.hud && !this.hud.classList.contains('visible')) {
+            this.hud.classList.add('visible');
+        }
+
+        let responsePool = this.responses.idle;
+        if (isClick) {
+            this.mood = "excited";
+            responsePool = this.responses.click;
+        } else if (velocity > 30) {
+            this.mood = "excited";
+            responsePool = this.responses.rapid;
+        } else if (velocity > 5) {
+            this.mood = "curious";
+            responsePool = this.responses.hover;
+        } else {
+            this.mood = "calm";
+        }
+
+        // Only change message occasionally to prevent flickering
+        if (this.interactionCount % 10 === 0 || isClick) {
+            this.messageEl.innerText = responsePool[Math.floor(Math.random() * responsePool.length)];
+        }
+        
+        this.updateHUD();
+    }
+
+    updateHUD() {
+        if (!this.hud) return;
+        this.moodEl.innerText = `Mood: ${this.mood}`;
+        this.engagementEl.innerText = `Engagement: ${Math.round(this.engagement)}%`;
+        this.asciiEl.innerText = this.arts[this.mood] || this.arts.calm;
+    }
+}
+
+class CustomCursor {
+    constructor() {
+        this.cursor = document.getElementById('custom-cursor');
+        this.x = -100;
+        this.y = -100;
+        this.targetX = -100;
+        this.targetY = -100;
+        
+        if (!this.cursor) return;
+        
+        // Disable on touch devices
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            this.cursor.style.display = 'none';
+            document.body.style.cursor = 'auto';
+            return;
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            this.targetX = e.clientX;
+            this.targetY = e.clientY;
+        });
+
+        window.addEventListener('click', () => {
+            if (window.auraAgent) window.auraAgent.processInteraction(100, true);
+        });
+
+        this.animate = this.animate.bind(this);
+        requestAnimationFrame(this.animate);
+    }
+
+    animate() {
+        // Smooth lerp
+        this.x += (this.targetX - this.x) * 0.15;
+        this.y += (this.targetY - this.y) * 0.15;
+        
+        if (this.cursor) {
+            this.cursor.style.transform = `translate(${this.x}px, ${this.y}px)`;
+        }
+        requestAnimationFrame(this.animate);
+    }
+}
+
+// Initialize Custom UX
+window.addEventListener('DOMContentLoaded', () => {
+    window.auraAgent = new AuraAgent();
+    new CustomCursor();
 });
