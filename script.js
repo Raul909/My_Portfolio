@@ -901,7 +901,7 @@ class AuraAgent {
         
         let msg = "";
         if (topic === 'stack') msg = "My core stack is Python, Java, C++, and AI/ML!";
-        else if (topic === 'role') msg = "I'm a Backend Developer at TCS, building scalable APIs.";
+        else if (topic === 'role') msg = "I'm a Backend Developer at some corporate company (bleh), surviving meetings and building APIs.";
         else if (topic === 'hire') msg = "I bring a unique blend of backend scalability and AI innovation.";
         
         if (this.messageEl) {
