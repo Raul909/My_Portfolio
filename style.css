@@ -21,6 +21,22 @@
     --gradient: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
 }
 
+.light-theme {
+    --bg: #f8f9fa;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --text-primary: #121212;
+    --text-secondary: #555555;
+    --accent: #008eb3;
+    --accent-dark: #006b8c;
+    --accent-dim: rgba(0, 142, 179, 0.12);
+    --surface: rgba(0, 0, 0, 0.04);
+    --surface-hover: rgba(0, 0, 0, 0.08);
+    --border: rgba(0, 0, 0, 0.1);
+    --border-active: rgba(0, 142, 179, 0.5);
+    --light: #121212;
+    --muted: rgba(18, 18, 18, 0.6);
+}
+
 html { scroll-behavior: smooth; }
 
 body {
@@ -49,9 +65,11 @@ body {
     left: 0;
     height: 2px;
     background: var(--gradient);
-    width: 0%;
+    width: 100%;
+    transform: scaleX(0);
+    transform-origin: left;
     z-index: 9999;
-    transition: width 0.1s linear;
+    will-change: transform;
 }
 
 /* ─── Navbar ──────────────────────────────────────────────────────────────── */
@@ -126,6 +144,28 @@ body {
 .nav-links a.active::after {
     width: 100%;
 }
+
+.theme-toggle {
+    background: none;
+    border: none;
+    color: var(--light);
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s ease, transform 0.3s ease;
+    border-radius: 50%;
+}
+
+.theme-toggle:hover {
+    color: var(--accent);
+    transform: scale(1.1);
+}
+
+.theme-toggle .moon-icon { display: none; }
+.light-theme .theme-toggle .sun-icon { display: none; }
+.light-theme .theme-toggle .moon-icon { display: block; }
 
 .menu-toggle {
     display: none;

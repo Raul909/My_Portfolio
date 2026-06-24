@@ -57,7 +57,7 @@ class AsciiRenderer {
                             }
                         })
                         .catch(err => {
-                            console.log(`Observer play blocked for ${videoId}:`, err);
+                            // Silently ignore autoplay rejections to prevent console errors
                         });
                 } else {
                     this.video.pause();
@@ -701,4 +701,25 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
     btn.textContent = orig;
     btn.disabled = false;
     setTimeout(() => { msg.className = 'form-message'; }, 5000);
+});
+
+// ─── Theme Toggler ────────────────────────────────────────────────────────────
+
+const themeToggle = document.querySelector('.theme-toggle');
+const currentTheme = localStorage.getItem('theme');
+const prefersLightScheme = window.matchMedia('(prefers-color-scheme: light)');
+
+// Set initial theme
+if (currentTheme == 'light' || (!currentTheme && prefersLightScheme.matches)) {
+    document.body.classList.add('light-theme');
+}
+
+themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('light-theme');
+    
+    let theme = 'dark';
+    if (document.body.classList.contains('light-theme')) {
+        theme = 'light';
+    }
+    localStorage.setItem('theme', theme);
 });
