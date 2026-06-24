@@ -1003,13 +1003,14 @@ class CustomCursor {
     }
     
     getColor() {
+        const isLight = document.body.classList.contains('light-theme');
         if (this.state.hover) {
-            if (this.state.type === 'link') return '#4ECDC4';
+            if (this.state.type === 'link') return isLight ? '#00bcd4' : '#E85D3F';
             if (this.state.type === 'button') return '#E85D3F';
             if (this.state.type === 'text') return '#D4A853';
             if (this.state.type === 'image') return '#6366F1';
         }
-        return '#F0F0F5';
+        return isLight ? '#121212' : '#F0F0F5';
     }
 
     updateStyles() {
