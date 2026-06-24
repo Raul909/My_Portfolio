@@ -606,6 +606,8 @@ section.in-view {
 .videos {
     position: relative;
     overflow: hidden;
+    padding-top: 8rem;
+    padding-bottom: 8rem;
 }
 
 .ascii-videos-bg {
@@ -636,10 +638,12 @@ section.in-view {
     inset: 0;
     background: linear-gradient(
         180deg,
-        rgba(8, 8, 8, 1) 0%,
-        rgba(8, 8, 8, 0.55) 20%,
-        rgba(8, 8, 8, 0.55) 80%,
-        rgba(8, 8, 8, 1) 100%
+        var(--bg) 0%,
+        var(--bg) 5%,
+        transparent 30%,
+        transparent 70%,
+        var(--bg) 95%,
+        var(--bg) 100%
     );
     z-index: 1;
     pointer-events: none;
