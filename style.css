@@ -67,10 +67,10 @@ body {
 }
 
 #navbar.scrolled {
-    background: rgba(8, 8, 8, 0.95);
-    backdrop-filter: blur(20px) saturate(180%);
-    border-bottom: 1px solid var(--border);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+    background: transparent;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid transparent;
+    box-shadow: none;
 }
 
 .nav-content {

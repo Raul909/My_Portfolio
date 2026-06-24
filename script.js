@@ -13,7 +13,7 @@ class AsciiRenderer {
         this.offscreenCtx = this.offscreenCanvas.getContext('2d', { willReadFrequently: true });
         
         // Density string from dark to light
-        this.density = options.density || "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. ";
+        this.density = options.density || "Ñ@#W$9876543210?!abc;:+=-,._ ";
         this.tier = tier;
         
         // Settings based on device tiers
@@ -108,7 +108,7 @@ class AsciiRenderer {
 
         let scaleFactor = 1;
         if (width < 768) {
-            scaleFactor = 1.3; // slightly larger font scale on mobile for readability
+            scaleFactor = 1.4; // larger characters on mobile for spacing
         }
 
         const currentFontSize = Math.round(this.fontSize * scaleFactor);
@@ -148,18 +148,17 @@ class AsciiRenderer {
         const imageData = this.offscreenCtx.getImageData(0, 0, this.cols, this.rows);
         const data = imageData.data;
 
-        // 2. Clear canvas with transparent pixels (crucial for source-in masking)
-        const w = this.canvas.offsetWidth;
-        const h = this.canvas.offsetHeight;
-        this.ctx.clearRect(0, 0, w, h);
+        // 2. Clear canvas with black background
+        this.ctx.fillStyle = '#080808';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // 3. Draw white characters
-        this.ctx.fillStyle = '#ffffff';
+        // 3. Prepare text rendering state
         const currentFontSize = Math.round(this.charHeight);
         this.ctx.font = 'bold ' + currentFontSize + 'px monospace';
         this.ctx.textAlign = 'left';
         this.ctx.textBaseline = 'top';
 
+        // 4. Draw ASCII characters with original color logic
         for (let y = 0; y < this.rows; y++) {
             for (let x = 0; x < this.cols; x++) {
                 const idx = (y * this.cols + x) * 4;
@@ -171,44 +170,27 @@ class AsciiRenderer {
                 if (a === 0) continue;
 
                 const avg = (r + g + b) / 3;
-                if (avg < 20) continue; // skip very dark pixels to keep good contrast
+                if (avg < 25) continue; // skip very dark pixels to keep good contrast
 
-                const charIdx = Math.floor(((avg - 20) / 235) * (this.density.length - 2));
+                const charIdx = Math.floor(((avg - 25) / 230) * (this.density.length - 2));
                 const mappedCharIdx = (this.density.length - 2) - Math.min(Math.max(charIdx, 0), this.density.length - 2);
                 const char = this.density[mappedCharIdx];
 
+                this.ctx.fillStyle = `rgb(${r},${g},${b})`;
                 this.ctx.fillText(char, x * this.charWidth, y * this.charHeight);
             }
         }
-
-        // 4. Color the text using GPU compositing (mask text with pixelated video frame)
-        this.ctx.globalCompositeOperation = 'source-in';
-        this.ctx.imageSmoothingEnabled = false;
-        this.ctx.webkitImageSmoothingEnabled = false;
-        this.ctx.mozImageSmoothingEnabled = false;
-        this.ctx.msImageSmoothingEnabled = false;
-        this.ctx.drawImage(this.offscreenCanvas, 0, 0, w, h);
-
-        // 5. Draw solid dark background behind the colored text
-        this.ctx.globalCompositeOperation = 'destination-over';
-        this.ctx.fillStyle = '#080808';
-        this.ctx.fillRect(0, 0, w, h);
-
-        // 6. Reset composite mode and image smoothing to default
-        this.ctx.globalCompositeOperation = 'source-over';
-        this.ctx.imageSmoothingEnabled = true;
-        this.ctx.webkitImageSmoothingEnabled = true;
-        this.ctx.mozImageSmoothingEnabled = true;
-        this.ctx.msImageSmoothingEnabled = true;
     }
 }
 
 // Determine hardware tier once
 const cores = navigator.hardwareConcurrency || 4;
 const memory = navigator.deviceMemory || 4;
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+
 let hardwareTier = 1;
 if (cores >= 8 && memory >= 6) {
-    hardwareTier = 3; // High-end
+    hardwareTier = isMobile ? 2 : 3; // High-end mobiles get Tier 2, PCs get Tier 3
 } else if (cores >= 4 && memory >= 4) {
     hardwareTier = 2; // Mid-range
 } else {
@@ -217,26 +199,26 @@ if (cores >= 8 && memory >= 6) {
 
 // Initialize ASCII video backgrounds
 new AsciiRenderer('hidden-video', 'ascii-canvas', 'home', hardwareTier, {
-    fontSize3: 6,
-    fps3: 60,
-    speed3: 1.5, // slightly sped up for hero aesthetics
-    fontSize2: 12,
-    fps2: 24,
+    fontSize3: 8,     // Ultra dense for high-end PCs
+    fps3: 24,         // Smooth cinematic 24 FPS
+    speed3: 1.0,
+    fontSize2: 12,    // Balanced resolution for mid-range PCs and high-end mobile
+    fps2: 20,         // 20 FPS is lightweight and looks good
     speed2: 1.0,
-    fontSize1: 18,
-    fps1: 15,
+    fontSize1: 18,    // Lower resolution for low-end devices
+    fps1: 15,         // 15 FPS to conserve CPU
     speed1: 0.8
 });
 
 new AsciiRenderer('video-editing-bg-video', 'video-editing-canvas', 'videos', hardwareTier, {
-    fontSize3: 6,
-    fps3: 45,    // smooth 45fps on high-end
+    fontSize3: 8,     // Ultra dense for high-end PCs
+    fps3: 24,         // Smooth cinematic 24 FPS
     speed3: 1.0,
-    fontSize2: 12,
-    fps2: 24,
+    fontSize2: 12,    // Balanced resolution for mid-range PCs and high-end mobile
+    fps2: 20,         // 20 FPS is lightweight and looks good
     speed2: 1.0,
-    fontSize1: 18,
-    fps1: 15,
+    fontSize1: 18,    // Lower resolution for low-end devices
+    fps1: 15,         // 15 FPS to conserve CPU
     speed1: 0.8
 });
 
