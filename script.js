@@ -8,16 +8,16 @@ if (asciiVideo && asciiCanvas) {
     const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
     
     // Density string from dark to light
-    const density = "Ñ@#W$9876543210?!abc;:+=-,._ ";
+    const density = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. ";
     
     // Detect hardware capabilities
     const cores = navigator.hardwareConcurrency || 4;
     const memory = navigator.deviceMemory || 4; // in GB
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
 
-    let tier = 1; // 1: Low-end, 2: Mid-range, 3: High-end PC
+    let tier = 1; // 1: Low-end, 2: Mid-range, 3: High-end
     if (cores >= 8 && memory >= 6) {
-        tier = isMobile ? 2 : 3; // High-end mobiles get Tier 2, PCs get Tier 3
+        tier = 3; // High-end laptops, PCs and mobiles get Tier 3
     } else if (cores >= 4 && memory >= 4) {
         tier = 2; // Mid-range gets Tier 2
     } else {
@@ -28,14 +28,17 @@ if (asciiVideo && asciiCanvas) {
     let targetFPS = 24;
     
     if (tier === 3) {
-        fontSize = 8;     // Ultra dense for high-end PCs
-        targetFPS = 24;   // Smooth cinematic 24 FPS
+        fontSize = 6;     // Ultra dense for high-end devices
+        targetFPS = 60;   // Smooth 60 FPS
+        if (asciiVideo) asciiVideo.playbackRate = 1.5; // Fast forward slightly for a cooler effect
     } else if (tier === 2) {
-        fontSize = 12;    // Balanced resolution for mid-range PCs and high-end mobile
+        fontSize = 12;    // Balanced resolution for mid-range PCs and mobile
         targetFPS = 20;   // 20 FPS is lightweight and looks good
+        if (asciiVideo) asciiVideo.playbackRate = 1.0;
     } else {
         fontSize = 18;    // Lower resolution for low-end devices
         targetFPS = 15;   // 15 FPS to conserve CPU
+        if (asciiVideo) asciiVideo.playbackRate = 0.8;
     }
 
     let charWidth = fontSize * 0.6;
