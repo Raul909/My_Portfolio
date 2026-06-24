@@ -85,10 +85,11 @@ body {
 }
 
 #navbar.scrolled {
-    background: transparent;
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid transparent;
-    box-shadow: none;
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
 .nav-content {
