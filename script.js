@@ -158,26 +158,63 @@ class AsciiRenderer {
         this.ctx.textAlign = 'left';
         this.ctx.textBaseline = 'top';
 
-        // 4. Draw ASCII characters with original color logic
-        for (let y = 0; y < this.rows; y++) {
-            for (let x = 0; x < this.cols; x++) {
-                const idx = (y * this.cols + x) * 4;
-                const r = data[idx];
-                const g = data[idx+1];
-                const b = data[idx+2];
-                const a = data[idx+3];
+        // 4. Render ASCII
+        if (this.tier === 1) {
+            // OPTIMIZATION FOR LOW-END DEVICES: 
+            // Avoid expensive ctx.fillStyle state changes per character.
+            // Draw all characters in white, then use GPU compositing to color them.
+            this.ctx.fillStyle = '#ffffff';
+            for (let y = 0; y < this.rows; y++) {
+                for (let x = 0; x < this.cols; x++) {
+                    const idx = (y * this.cols + x) * 4;
+                    const r = data[idx];
+                    const g = data[idx+1];
+                    const b = data[idx+2];
+                    const a = data[idx+3];
 
-                if (a === 0) continue;
+                    if (a === 0) continue;
+                    const avg = (r + g + b) / 3;
+                    if (avg < 25) continue; 
 
-                const avg = (r + g + b) / 3;
-                if (avg < 25) continue; // skip very dark pixels to keep good contrast
+                    const charIdx = Math.floor(((avg - 25) / 230) * (this.density.length - 2));
+                    const mappedCharIdx = (this.density.length - 2) - Math.min(Math.max(charIdx, 0), this.density.length - 2);
+                    const char = this.density[mappedCharIdx];
 
-                const charIdx = Math.floor(((avg - 25) / 230) * (this.density.length - 2));
-                const mappedCharIdx = (this.density.length - 2) - Math.min(Math.max(charIdx, 0), this.density.length - 2);
-                const char = this.density[mappedCharIdx];
+                    this.ctx.fillText(char, x * this.charWidth, y * this.charHeight);
+                }
+            }
 
-                this.ctx.fillStyle = `rgb(${r},${g},${b})`;
-                this.ctx.fillText(char, x * this.charWidth, y * this.charHeight);
+            // Apply color via GPU compositing
+            this.ctx.globalCompositeOperation = 'source-in';
+            this.ctx.drawImage(this.offscreenCanvas, 0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.globalCompositeOperation = 'destination-over';
+            this.ctx.fillStyle = '#080808';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.globalCompositeOperation = 'source-over';
+
+        } else {
+            // HIGH-END/MID-RANGE: Use exact original logic (pixel-by-pixel color)
+            // for maximum authenticity and high density detailing
+            for (let y = 0; y < this.rows; y++) {
+                for (let x = 0; x < this.cols; x++) {
+                    const idx = (y * this.cols + x) * 4;
+                    const r = data[idx];
+                    const g = data[idx+1];
+                    const b = data[idx+2];
+                    const a = data[idx+3];
+
+                    if (a === 0) continue;
+
+                    const avg = (r + g + b) / 3;
+                    if (avg < 25) continue; // skip very dark pixels to keep good contrast
+
+                    const charIdx = Math.floor(((avg - 25) / 230) * (this.density.length - 2));
+                    const mappedCharIdx = (this.density.length - 2) - Math.min(Math.max(charIdx, 0), this.density.length - 2);
+                    const char = this.density[mappedCharIdx];
+
+                    this.ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    this.ctx.fillText(char, x * this.charWidth, y * this.charHeight);
+                }
             }
         }
     }
@@ -199,11 +236,11 @@ if (cores >= 8 && memory >= 6) {
 
 // Initialize ASCII video backgrounds
 new AsciiRenderer('hidden-video', 'ascii-canvas', 'home', hardwareTier, {
-    fontSize3: 8,     // Ultra dense for high-end PCs
-    fps3: 24,         // Smooth cinematic 24 FPS
+    fontSize3: 5,     // Ultra dense for high-end PCs (increased from 8)
+    fps3: 30,         // Smooth 30 FPS
     speed3: 1.0,
-    fontSize2: 12,    // Balanced resolution for mid-range PCs and high-end mobile
-    fps2: 20,         // 20 FPS is lightweight and looks good
+    fontSize2: 10,    // Increased density for mid-range and mobile
+    fps2: 24,         // 24 FPS 
     speed2: 1.0,
     fontSize1: 18,    // Lower resolution for low-end devices
     fps1: 15,         // 15 FPS to conserve CPU
@@ -211,11 +248,11 @@ new AsciiRenderer('hidden-video', 'ascii-canvas', 'home', hardwareTier, {
 });
 
 new AsciiRenderer('video-editing-bg-video', 'video-editing-canvas', 'videos', hardwareTier, {
-    fontSize3: 8,     // Ultra dense for high-end PCs
-    fps3: 24,         // Smooth cinematic 24 FPS
+    fontSize3: 5,     // Ultra dense for high-end PCs
+    fps3: 30,         // Smooth 30 FPS
     speed3: 1.0,
-    fontSize2: 12,    // Balanced resolution for mid-range PCs and high-end mobile
-    fps2: 20,         // 20 FPS is lightweight and looks good
+    fontSize2: 10,    // Increased density for mid-range and mobile
+    fps2: 24,         // 24 FPS 
     speed2: 1.0,
     fontSize1: 18,    // Lower resolution for low-end devices
     fps1: 15,         // 15 FPS to conserve CPU
