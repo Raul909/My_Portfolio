@@ -71,72 +71,7 @@ body {
     background-clip: text;
 }
 
-/* ─── Custom Cursor ───────────────────────────────────────────────────────── */
 
-.custom-cursor {
-    position: fixed;
-    top: 0;
-    left: 0;
-    pointer-events: none;
-    z-index: 9999;
-}
-
-.cursor-dot {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    background-color: var(--text-primary);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    transition: width 0.15s, height 0.15s, background-color 0.15s, transform 0.1s ease-out;
-    mix-blend-mode: difference;
-    z-index: 2;
-}
-
-.cursor-glow {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    filter: blur(4px);
-    opacity: 0.5;
-    background: inherit;
-}
-
-.cursor-ring {
-    position: absolute;
-    width: 28px;
-    height: 28px;
-    border: 2px solid rgba(240, 240, 245, 0.3);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    transition: width 0.3s, height 0.3s, border-color 0.3s, opacity 0.3s;
-    z-index: 1;
-}
-
-.cursor-trail-dot {
-    position: absolute;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    opacity: 0;
-    transition: opacity 0.3s;
-    z-index: 0;
-}
-
-.cursor-label {
-    position: absolute;
-    padding: 6px 12px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    backdrop-filter: blur(8px);
-    opacity: 0;
-    transform: translate(20px, -50%) scale(0.8);
-    transition: all 0.2s ease-out;
-    pointer-events: none;
-    z-index: 3;
-}
 
 /* ─── Agent HUD (Living Organism) ─────────────────────────────────────────── */
 
@@ -555,15 +490,18 @@ html {
     background: #00bcd4; /* Cyan */
 }
 
-.nav-links a:hover {
+.nav-links a:hover,
+.nav-links a.active {
     color: #F0F0F5;
 }
 
-.light-theme .nav-links a:hover {
+.light-theme .nav-links a:hover,
+.light-theme .nav-links a.active {
     color: #121212;
 }
 
-.nav-links a:hover::after {
+.nav-links a:hover::after,
+.nav-links a.active::after {
     width: 100%;
 }
 
