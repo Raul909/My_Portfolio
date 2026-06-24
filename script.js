@@ -108,31 +108,6 @@ class AsciiRenderer {
         document.addEventListener('touchstart', handleInteraction);
     }
 
-    initParticles() {
-        const length = this.rows * this.cols;
-        this.px = new Float32Array(length);
-        this.py = new Float32Array(length);
-        this.pz = new Float32Array(length);
-        this.ox = new Float32Array(length);
-        this.oy = new Float32Array(length);
-        this.vx = new Float32Array(length);
-        this.vy = new Float32Array(length);
-        this.vz = new Float32Array(length);
-        this.phase = new Float32Array(length);
-
-        for (let y = 0; y < this.rows; y++) {
-            for (let x = 0; x < this.cols; x++) {
-                const i = y * this.cols + x;
-                this.ox[i] = x * this.charWidth;
-                this.oy[i] = y * this.charHeight;
-                this.px[i] = this.ox[i];
-                this.py[i] = this.oy[i];
-                this.pz[i] = 0;
-                this.phase[i] = Math.random() * Math.PI * 2;
-            }
-        }
-    }
-
     handleResize() {
         const width = this.canvas.offsetWidth;
         const height = this.canvas.offsetHeight;
@@ -158,8 +133,6 @@ class AsciiRenderer {
 
         this.offscreenCanvas.width = this.cols;
         this.offscreenCanvas.height = this.rows;
-        
-        this.initParticles();
     }
 
     handleMouseMove(e) {
@@ -176,6 +149,7 @@ class AsciiRenderer {
     render(time) {
         if (!this.isRendering) return;
 
+        // Smooth mouse interpolation
         this.mouseX += (this.targetMouseX - this.mouseX) * 0.15;
         this.mouseY += (this.targetMouseY - this.mouseY) * 0.15;
 
@@ -197,114 +171,110 @@ class AsciiRenderer {
         if (elapsed < this.fpsInterval) return;
         this.lastFrameTime = time - (elapsed % this.fpsInterval);
 
+        // 1. Draw video downscaled to offscreen canvas
         if (this.filter !== 'none') this.offscreenCtx.filter = this.filter;
         this.offscreenCtx.drawImage(this.video, 0, 0, this.cols, this.rows);
         if (this.filter !== 'none') this.offscreenCtx.filter = 'none';
         const imageData = this.offscreenCtx.getImageData(0, 0, this.cols, this.rows);
         const data = imageData.data;
 
-        // Deep fade background
-        this.ctx.fillStyle = 'rgba(7, 7, 12, 0.12)';
+        // 2. Clear canvas with black background
+        this.ctx.fillStyle = '#080808';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        const perspective = 500;
-        const cx = (this.cols * this.charWidth) / 2;
-        const cy = (this.rows * this.charHeight) / 2;
-        
-        // Render from back to front using an index array
-        const len = this.rows * this.cols;
-        const order = new Int32Array(len);
-        for(let i=0; i<len; i++) order[i] = i;
-        
-        // Physics update
-        for (let i = 0; i < len; i++) {
-            const dx = this.ox[i] - this.mouseX;
-            const dy = this.oy[i] - this.mouseY;
-            const distSq = dx * dx + dy * dy;
-            const mouseRadius = 200;
-            
-            // 3D Tunnel Effect
-            if (distSq < mouseRadius * mouseRadius && this.mouseX > 0) {
-                const dist = Math.sqrt(distSq);
-                const force = 1 - (dist / mouseRadius);
-                const angle = Math.atan2(dy, dx);
-                
-                // Push deep into screen
-                this.vz[i] += force * 15;
-                this.vx[i] += Math.cos(angle) * force * 3;
-                this.vy[i] += Math.sin(angle) * force * 3;
-                
-                // Rotation
-                const rotSpeed = force * 0.02;
-                const cosR = Math.cos(rotSpeed);
-                const sinR = Math.sin(rotSpeed);
-                const rx = dx * cosR - dy * sinR;
-                const ry = dx * sinR + dy * cosR;
-                
-                this.vx[i] += (rx - dx) * force * 0.1;
-                this.vy[i] += (ry - dy) * force * 0.1;
-            }
-            
-            // Ambient wave
-            this.vx[i] += Math.sin(time * 0.001 + this.oy[i] * 0.01 + this.phase[i]) * 0.02;
-            this.vy[i] += Math.cos(time * 0.0015 + this.ox[i] * 0.01 + this.phase[i]) * 0.02;
-            
-            // Spring back
-            this.vx[i] += (this.ox[i] - this.px[i]) * 0.03;
-            this.vy[i] += (this.oy[i] - this.py[i]) * 0.03;
-            this.vz[i] += (0 - this.pz[i]) * 0.05;
-            
-            // Damping
-            this.vx[i] *= 0.92;
-            this.vy[i] *= 0.92;
-            this.vz[i] *= 0.88;
-            
-            this.px[i] += this.vx[i];
-            this.py[i] += this.vy[i];
-            this.pz[i] += this.vz[i];
-        }
-
-        // Sort for proper depth rendering
-        order.sort((a, b) => this.pz[b] - this.pz[a]);
-        
+        // 3. Prepare text rendering state
+        const currentFontSize = Math.round(this.charHeight);
+        this.ctx.font = `bold ${currentFontSize}px "JetBrains Mono", monospace`;
         this.ctx.textAlign = 'left';
         this.ctx.textBaseline = 'top';
 
-        for (let j = 0; j < len; j++) {
-            const i = order[j];
-            const dataIdx = i * 4;
-            const r = data[dataIdx];
-            const g = data[dataIdx+1];
-            const b = data[dataIdx+2];
-            const a = data[dataIdx+3];
+        // 4. Render ASCII
+        if (this.tier === 1) {
+            // OPTIMIZATION FOR LOW-END DEVICES: 
+            this.ctx.fillStyle = '#ffffff';
+            for (let y = 0; y < this.rows; y++) {
+                for (let x = 0; x < this.cols; x++) {
+                    const idx = (y * this.cols + x) * 4;
+                    const r = data[idx];
+                    const g = data[idx+1];
+                    const b = data[idx+2];
+                    const a = data[idx+3];
 
-            if (a === 0) continue;
-            
-            const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
-            if (brightness < 20) continue; 
+                    if (a === 0) continue;
+                    const avg = (r + g + b) / 3;
+                    if (avg < 25) continue; 
 
-            // Perspective projection
-            const scale = perspective / (perspective + this.pz[i]);
-            const screenX = (this.px[i] - cx) * scale + cx;
-            const screenY = (this.py[i] - cy) * scale + cy;
-            const alpha = Math.max(0.1, Math.min(1, 1 - this.pz[i] * 0.05)) * (a/255);
-            
-            if (screenX < -20 || screenX > this.canvas.width/dpr + 20 || screenY < -20 || screenY > this.canvas.height/dpr + 20) continue;
+                    const charIdx = Math.floor(((avg - 25) / 230) * (this.density.length - 2));
+                    const mappedCharIdx = (this.density.length - 2) - Math.min(Math.max(charIdx, 0), this.density.length - 2);
+                    const char = this.density[mappedCharIdx];
 
-            const charIdx = Math.floor((brightness / 255) * (this.density.length - 1));
-            const char = this.density[Math.max(0, Math.min(charIdx, this.density.length - 1))];
-            
-            // Color based on depth
-            if (this.tier === 1) {
-                this.ctx.fillStyle = `rgba(240, 240, 245, ${alpha})`;
-            } else {
-                const depthSat = 60 + this.pz[i] * 20;
-                const depthLight = 40 + (brightness/255)*40 + this.pz[i] * 15;
-                this.ctx.fillStyle = `hsla(${15 + (brightness/255)*20}, ${depthSat}%, ${depthLight}%, ${alpha})`;
+                    let drawX = x * this.charWidth;
+                    let drawY = y * this.charHeight;
+
+                    // Mouse Interaction Physics (Repulsion)
+                    const dx = drawX - this.mouseX;
+                    const dy = drawY - this.mouseY;
+                    const distSq = dx * dx + dy * dy;
+                    const radius = 150;
+                    
+                    if (distSq < radius * radius && distSq > 0) {
+                        const dist = Math.sqrt(distSq);
+                        const force = (radius - dist) / radius;
+                        drawX += (dx / dist) * force * 30; // Push strength
+                        drawY += (dy / dist) * force * 30;
+                    }
+
+                    this.ctx.fillText(char, drawX, drawY);
+                }
             }
-            
-            this.ctx.font = `bold ${this.charHeight * scale}px "JetBrains Mono", monospace`;
-            this.ctx.fillText(char, screenX, screenY);
+
+            // Apply color via GPU compositing
+            this.ctx.globalCompositeOperation = 'source-in';
+            this.ctx.drawImage(this.offscreenCanvas, 0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.globalCompositeOperation = 'destination-over';
+            this.ctx.fillStyle = '#080808';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.globalCompositeOperation = 'source-over';
+
+        } else {
+            // HIGH-END/MID-RANGE: Exact pixel color mapping
+            for (let y = 0; y < this.rows; y++) {
+                for (let x = 0; x < this.cols; x++) {
+                    const idx = (y * this.cols + x) * 4;
+                    const r = data[idx];
+                    const g = data[idx+1];
+                    const b = data[idx+2];
+                    const a = data[idx+3];
+
+                    if (a === 0) continue;
+
+                    const avg = (r + g + b) / 3;
+                    if (avg < 25) continue; 
+
+                    const charIdx = Math.floor(((avg - 25) / 230) * (this.density.length - 2));
+                    const mappedCharIdx = (this.density.length - 2) - Math.min(Math.max(charIdx, 0), this.density.length - 2);
+                    const char = this.density[mappedCharIdx];
+
+                    let drawX = x * this.charWidth;
+                    let drawY = y * this.charHeight;
+
+                    // Mouse Interaction Physics
+                    const dx = drawX - this.mouseX;
+                    const dy = drawY - this.mouseY;
+                    const distSq = dx * dx + dy * dy;
+                    const radius = 150;
+                    
+                    if (distSq < radius * radius && distSq > 0) {
+                        const dist = Math.sqrt(distSq);
+                        const force = (radius - dist) / radius;
+                        drawX += (dx / dist) * force * 30;
+                        drawY += (dy / dist) * force * 30;
+                    }
+
+                    this.ctx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
+                    this.ctx.fillText(char, drawX, drawY);
+                }
+            }
         }
     }
 }
@@ -1124,13 +1094,19 @@ window.addEventListener('DOMContentLoaded', () => {
     if (nav) {
         window.addEventListener('scroll', () => {
             if (window.scrollY > 100) {
-                nav.classList.remove('hidden');
+                nav.style.background = 'rgba(14, 14, 20, 0.85)';
+                nav.style.borderColor = 'rgba(255, 255, 255, 0.1)';
             } else {
-                nav.classList.add('hidden');
+                nav.style.background = 'rgba(14, 14, 20, 0.4)';
+                nav.style.borderColor = 'transparent';
             }
         });
-        // Initial check
-        if (window.scrollY <= 100) nav.classList.add('hidden');
+        
+        // Initial setup
+        if (window.scrollY <= 100) {
+            nav.style.background = 'rgba(14, 14, 20, 0.4)';
+            nav.style.borderColor = 'transparent';
+        }
     }
 
     // Section Reveals
