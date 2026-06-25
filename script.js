@@ -769,6 +769,7 @@ function openLightbox(images, startIndex) {
         <div class="lightbox-content">
             <button class="lightbox-close" aria-label="Close lightbox">&times;</button>
             <button class="lightbox-prev" aria-label="Previous photo">&#10094;</button>
+            <div class="lightbox-loader"></div>
             <img src="${getCloudinaryUrl(images[current], 1600)}" width="1600" height="900" alt="Photo ${current + 1} of ${images.length}">
             <button class="lightbox-next" aria-label="Next photo">&#10095;</button>
             <div class="lightbox-counter">${current + 1} / ${images.length}</div>
@@ -779,6 +780,7 @@ function openLightbox(images, startIndex) {
 
     const img = lb.querySelector('img');
     const counter = lb.querySelector('.lightbox-counter');
+    const loader = lb.querySelector('.lightbox-loader');
 
     let expectedSrc = null;
     function go(idx) {
@@ -802,10 +804,15 @@ function openLightbox(images, startIndex) {
         setTimeout(() => {
             if (expectedSrc !== newSrc) return;
             isFaded = true;
-            if (isLoaded) showNext();
+            if (!isLoaded) {
+                loader.classList.add('active'); // Show loader if it's taking time
+            } else {
+                showNext();
+            }
         }, 150);
 
         function showNext() {
+            loader.classList.remove('active');
             img.src = newSrc;
             img.alt = `Photo ${current + 1} of ${images.length}`;
             counter.textContent = `${current + 1} / ${images.length}`;
@@ -913,14 +920,14 @@ const prefersLightScheme = window.matchMedia('(prefers-color-scheme: light)');
 
 // Set initial theme
 if (currentTheme == 'light' || (!currentTheme && prefersLightScheme.matches)) {
-    document.body.classList.add('light-theme');
+    document.documentElement.classList.add('light-theme');
 }
 
 themeToggle.addEventListener('click', () => {
-    document.body.classList.toggle('light-theme');
+    document.documentElement.classList.toggle('light-theme');
     
     let theme = 'dark';
-    if (document.body.classList.contains('light-theme')) {
+    if (document.documentElement.classList.contains('light-theme')) {
         theme = 'light';
     }
     localStorage.setItem('theme', theme);
