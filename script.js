@@ -297,33 +297,38 @@ if (cores >= 8 && memory >= 6) {
 // Add hardware tier class to root element for CSS targeting
 document.documentElement.classList.add(`tier-${hardwareTier}`);
 
-// Initialize ASCII video backgrounds
-setTimeout(() => {
-    new AsciiRenderer('hidden-video', 'ascii-canvas', 'home', hardwareTier, {
-        fontSize3: 5,     // Ultra dense for high-end PCs (increased from 8)
-        fps3: 30,         // Smooth 30 FPS
-        speed3: 1.0,
-        fontSize2: 10,    // Increased density for mid-range and mobile
-        fps2: 24,         // 24 FPS 
-        speed2: 1.0,
-        fontSize1: 18,    // Lower resolution for low-end devices
-        fps1: 15,         // 15 FPS to conserve CPU
-        speed1: 0.8
-    });
+// Initialize ASCII video backgrounds after page load to prevent blocking FCP/LCP
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        new AsciiRenderer('hidden-video', 'ascii-canvas', 'home', hardwareTier, {
+            fontSize3: 5,     // Ultra dense for high-end PCs
+            fps3: 30,         // Smooth 30 FPS
+            speed3: 1.0,
+            fontSize2: 10,    // Increased density for mid-range and mobile
+            fps2: 24,         // 24 FPS 
+            speed2: 1.0,
+            fontSize1: 18,    // Lower resolution for low-end devices
+            fps1: 15,         // 15 FPS to conserve CPU
+            speed1: 0.8
+        });
 
-    new AsciiRenderer('video-editing-bg-video', 'video-editing-canvas', 'videos', hardwareTier, {
-        fontSize3: 5,
-        fps3: 30,
-        speed3: 1.0,
-        fontSize2: 10,
-        fps2: 24,
-        speed2: 1.0,
-        fontSize1: 18,
-        fps1: 15,
-        speed1: 0.8,
-        filter: 'contrast(1.6) saturate(1.8) brightness(1.2)'
-    });
-}, 500);
+        // Stagger the second renderer to avoid main thread freezing
+        setTimeout(() => {
+            new AsciiRenderer('video-editing-bg-video', 'video-editing-canvas', 'videos', hardwareTier, {
+                fontSize3: 5,
+                fps3: 30,
+                speed3: 1.0,
+                fontSize2: 10,
+                fps2: 24,
+                speed2: 1.0,
+                fontSize1: 18,
+                fps1: 15,
+                speed1: 0.8,
+                filter: 'contrast(1.6) saturate(1.8) brightness(1.2)'
+            });
+        }, 500);
+    }, 200); // Wait 200ms after load
+});
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
