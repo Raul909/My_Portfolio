@@ -771,10 +771,17 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
     btn.disabled = true;
 
     try {
-        const res = await fetch('/', {
+        const formData = new FormData(form);
+        const object = Object.fromEntries(formData);
+        const json = JSON.stringify(object);
+
+        const res = await fetch('https://api.web3forms.com/submit', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams(new FormData(form)).toString()
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: json
         });
 
         if (res.ok) {

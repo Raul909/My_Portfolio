@@ -280,9 +280,8 @@
                         </a>
                     </div>
                 </div>
-                <form class="contact-form" id="contact-form" name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field">
-                    <input type="hidden" name="form-name" value="contact">
-                    <p style="display:none;"><label>Don't fill this: <input name="bot-field"></label></p>
+                <form class="contact-form" id="contact-form" action="https://api.web3forms.com/submit" method="POST">
+                    <input type="hidden" name="access_key" value="{{WEB3FORMS_KEY}}">
                     <input type="text" name="name" placeholder="Your Name" required aria-label="Your name">
                     <input type="email" name="email" placeholder="Your Email" required aria-label="Your email">
                     <textarea name="message" placeholder="Your Message" rows="5" required aria-label="Your message"></textarea>
