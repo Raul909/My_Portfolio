@@ -124,11 +124,11 @@ class AsciiRenderer {
 
         let scaleFactor = 1;
         if (width < 768) {
-            scaleFactor = 1.4; // larger characters on mobile for spacing
+            scaleFactor = 1.2; // slightly larger characters on mobile, but keep ratio
         }
 
-        const currentFontSize = Math.round(this.fontSize * scaleFactor);
-        this.charWidth = currentFontSize * 0.6;
+        const currentFontSize = Math.max(4, Math.round(this.fontSize * scaleFactor));
+        this.charWidth = Math.max(1, currentFontSize * 0.6);
         this.charHeight = currentFontSize;
 
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -298,30 +298,32 @@ if (cores >= 8 && memory >= 6) {
 document.documentElement.classList.add(`tier-${hardwareTier}`);
 
 // Initialize ASCII video backgrounds
-new AsciiRenderer('hidden-video', 'ascii-canvas', 'home', hardwareTier, {
-    fontSize3: 5,     // Ultra dense for high-end PCs (increased from 8)
-    fps3: 30,         // Smooth 30 FPS
-    speed3: 1.0,
-    fontSize2: 10,    // Increased density for mid-range and mobile
-    fps2: 24,         // 24 FPS 
-    speed2: 1.0,
-    fontSize1: 18,    // Lower resolution for low-end devices
-    fps1: 15,         // 15 FPS to conserve CPU
-    speed1: 0.8
-});
+setTimeout(() => {
+    new AsciiRenderer('hidden-video', 'ascii-canvas', 'home', hardwareTier, {
+        fontSize3: 5,     // Ultra dense for high-end PCs (increased from 8)
+        fps3: 30,         // Smooth 30 FPS
+        speed3: 1.0,
+        fontSize2: 10,    // Increased density for mid-range and mobile
+        fps2: 24,         // 24 FPS 
+        speed2: 1.0,
+        fontSize1: 18,    // Lower resolution for low-end devices
+        fps1: 15,         // 15 FPS to conserve CPU
+        speed1: 0.8
+    });
 
-new AsciiRenderer('video-editing-bg-video', 'video-editing-canvas', 'videos', hardwareTier, {
-    fontSize3: 5,
-    fps3: 30,
-    speed3: 1.0,
-    fontSize2: 10,
-    fps2: 24,
-    speed2: 1.0,
-    fontSize1: 18,
-    fps1: 15,
-    speed1: 0.8,
-    filter: 'contrast(1.6) saturate(1.8) brightness(1.2)'
-});
+    new AsciiRenderer('video-editing-bg-video', 'video-editing-canvas', 'videos', hardwareTier, {
+        fontSize3: 5,
+        fps3: 30,
+        speed3: 1.0,
+        fontSize2: 10,
+        fps2: 24,
+        speed2: 1.0,
+        fontSize1: 18,
+        fps1: 15,
+        speed1: 0.8,
+        filter: 'contrast(1.6) saturate(1.8) brightness(1.2)'
+    });
+}, 500);
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
@@ -549,10 +551,12 @@ async function fetchGitHubRepos() {
             card.className = 'project-card';
             card.innerHTML = `
                 <div class="project-preview">
-                    <img src="${previewSrc}"
+                    <img src="${previewSrc}" 
                          alt="${repo.name} preview"
+                         class="project-preview-image"
                          loading="lazy"
-                         onerror="this.src='https://opengraph.githubassets.com/1/${repo.full_name}'">
+                         width="600" height="340"
+                         style="width: 100%; height: auto; display: ${previewSrc ? 'block' : 'none'}; border-radius: 6px; margin-bottom: 1rem;">
                 </div>
                 <div class="project-content">
                     <h3>${repo.name.replace(/[-_]/g, ' ')}</h3>
@@ -623,9 +627,10 @@ function renderVideos(videoIds, container) {
         card.className = 'video-card';
         card.setAttribute('aria-label', 'Watch video on YouTube');
         card.innerHTML = `
-            <img src="https://img.youtube.com/vi/${id}/hqdefault.jpg"
-                 onerror="this.src='https://img.youtube.com/vi/${id}/mqdefault.jpg'"
-                 alt="Video thumbnail" loading="lazy">
+            <img src="https://img.youtube.com/vi/${id}/hqdefault.jpg" 
+                 alt="Video thumbnail" loading="lazy" width="480" height="360"
+                 class="video-thumbnail-img"
+                 onerror="this.src='https://img.youtube.com/vi/${id}/mqdefault.jpg'">
             <div class="video-play-overlay">
                 <svg width="56" height="40" viewBox="0 0 68 48" aria-hidden="true">
                     <path d="M66.52,7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13,34,0,34,0S12.21.13,6.9,1.55C3.97,2.33,2.27,4.81,1.48,7.74.06,13.05,0,24,0,24s.06,10.95,1.48,16.26c.78,2.93,2.49,5.41,5.42,6.19C12.21,47.87,34,48,34,48s21.79-.13,27.1-1.55c2.93-.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#f00"/>
@@ -741,7 +746,7 @@ function loadPhotoGallery() {
         const item = document.createElement('div');
         item.className = 'gallery-item';
         // Load optimized 600px thumbnail for grid
-        item.innerHTML = `<img src="${getCloudinaryUrl(url, 600)}" alt="Photography ${i + 1}" loading="lazy">`;
+        item.innerHTML = `<img src="${getCloudinaryUrl(url, 600)}" alt="Photography ${i + 1}" width="600" height="600" loading="lazy">`;
         // Use 1600px optimized image for lightbox
         item.addEventListener('click', () => openLightbox(PHOTOS, i));
         container.appendChild(item);
@@ -765,7 +770,7 @@ function openLightbox(images, startIndex) {
         <div class="lightbox-content">
             <button class="lightbox-close" aria-label="Close lightbox">&times;</button>
             <button class="lightbox-prev" aria-label="Previous photo">&#10094;</button>
-            <img src="${getCloudinaryUrl(images[current], 1600)}" alt="Photo ${current + 1} of ${images.length}">
+            <img src="${getCloudinaryUrl(images[current], 1600)}" width="1600" height="900" alt="Photo ${current + 1} of ${images.length}">
             <button class="lightbox-next" aria-label="Next photo">&#10095;</button>
             <div class="lightbox-counter">${current + 1} / ${images.length}</div>
         </div>
@@ -807,6 +812,21 @@ function openLightbox(images, startIndex) {
 }
 
 // ─── Contact Form (Netlify Forms) ─────────────────────────────────────────────
+
+// Real-time email validation
+const emailInput = document.getElementById('email');
+if (emailInput) {
+    emailInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        if (val === '') {
+            e.target.style.borderColor = 'var(--border)';
+        } else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+            e.target.style.borderColor = '#00D4AA'; // Green for valid
+        } else {
+            e.target.style.borderColor = '#E85D3F'; // Red for invalid
+        }
+    });
+}
 
 document.getElementById('contact-form').addEventListener('submit', async (e) => {
     e.preventDefault();
