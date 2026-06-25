@@ -449,6 +449,7 @@ const sectionObserver = new IntersectionObserver((entries) => {
 }, { threshold: 0.08 });
 
 sections.forEach(s => sectionObserver.observe(s));
+document.querySelectorAll('.section-reveal').forEach(r => sectionObserver.observe(r));
 
 // ─── 3D Tilt ──────────────────────────────────────────────────────────────────
 
