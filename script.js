@@ -131,7 +131,7 @@ class AsciiRenderer {
         this.charWidth = currentFontSize * 0.6;
         this.charHeight = currentFontSize;
 
-        this.ctx.scale(dpr, dpr);
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         this.cols = Math.floor(width / this.charWidth);
         this.rows = Math.floor(height / this.charHeight);
@@ -164,6 +164,9 @@ class AsciiRenderer {
         const elapsed = time - this.lastFrameTime;
         if (elapsed < this.fpsInterval) return;
         this.lastFrameTime = time - (elapsed % this.fpsInterval);
+
+        // Gate mouse physics: only calculate repulsion if mouse is near canvas
+        const isMouseClose = this.mouseX > -500 && this.mouseY > -500;
 
         // 1. Draw video downscaled to offscreen canvas
         if (this.filter !== 'none') this.offscreenCtx.filter = this.filter;
@@ -205,17 +208,19 @@ class AsciiRenderer {
                     let drawX = x * this.charWidth;
                     let drawY = y * this.charHeight;
 
-                    // Mouse Interaction Physics (Repulsion)
-                    const dx = drawX - this.mouseX;
-                    const dy = drawY - this.mouseY;
-                    const distSq = dx * dx + dy * dy;
-                    const radius = 150;
-                    
-                    if (distSq < radius * radius && distSq > 0) {
-                        const dist = Math.sqrt(distSq);
-                        const force = (radius - dist) / radius;
-                        drawX += (dx / dist) * force * 30; // Push strength
-                        drawY += (dy / dist) * force * 30;
+                    // Mouse Interaction Physics (Repulsion) - gated
+                    if (isMouseClose) {
+                        const dx = drawX - this.mouseX;
+                        const dy = drawY - this.mouseY;
+                        const distSq = dx * dx + dy * dy;
+                        const radius = 150;
+                        
+                        if (distSq < radius * radius && distSq > 0) {
+                            const dist = Math.sqrt(distSq);
+                            const force = (radius - dist) / radius;
+                            drawX += (dx / dist) * force * 30; // Push strength
+                            drawY += (dy / dist) * force * 30;
+                        }
                     }
 
                     this.ctx.fillText(char, drawX, drawY);
@@ -252,17 +257,19 @@ class AsciiRenderer {
                     let drawX = x * this.charWidth;
                     let drawY = y * this.charHeight;
 
-                    // Mouse Interaction Physics
-                    const dx = drawX - this.mouseX;
-                    const dy = drawY - this.mouseY;
-                    const distSq = dx * dx + dy * dy;
-                    const radius = 150;
-                    
-                    if (distSq < radius * radius && distSq > 0) {
-                        const dist = Math.sqrt(distSq);
-                        const force = (radius - dist) / radius;
-                        drawX += (dx / dist) * force * 30;
-                        drawY += (dy / dist) * force * 30;
+                    // Mouse Interaction Physics - gated
+                    if (isMouseClose) {
+                        const dx = drawX - this.mouseX;
+                        const dy = drawY - this.mouseY;
+                        const distSq = dx * dx + dy * dy;
+                        const radius = 150;
+                        
+                        if (distSq < radius * radius && distSq > 0) {
+                            const dist = Math.sqrt(distSq);
+                            const force = (radius - dist) / radius;
+                            drawX += (dx / dist) * force * 30;
+                            drawY += (dy / dist) * force * 30;
+                        }
                     }
 
                     this.ctx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
@@ -286,6 +293,9 @@ if (cores >= 8 && memory >= 6) {
 } else {
     hardwareTier = 1; // Low-end
 }
+
+// Add hardware tier class to root element for CSS targeting
+document.documentElement.classList.add(`tier-${hardwareTier}`);
 
 // Initialize ASCII video backgrounds
 new AsciiRenderer('hidden-video', 'ascii-canvas', 'home', hardwareTier, {
@@ -420,7 +430,15 @@ document.addEventListener('click', (e) => {
 // ─── Section Reveal ───────────────────────────────────────────────────────────
 
 const sectionObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('in-view'); });
+    entries.forEach(entry => { 
+        if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            // Also add is-visible for .section-reveal elements
+            if (entry.target.classList.contains('section-reveal')) {
+                entry.target.classList.add('is-visible');
+            }
+        }
+    });
 }, { threshold: 0.08 });
 
 sections.forEach(s => sectionObserver.observe(s));
@@ -484,8 +502,11 @@ const animObserver = new IntersectionObserver((entries) => {
     });
 }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
 
-function observeCards() {
-    document.querySelectorAll('.about-card, .project-card, .video-card, .gallery-item').forEach(el => {
+function observeCards(container = document) {
+    container.querySelectorAll('.about-card, .project-card, .video-card, .gallery-item').forEach(el => {
+        if (el.dataset.observed) return;
+        el.dataset.observed = 'true';
+        
         el.style.opacity = '0';
         el.style.transform = 'translateY(24px)';
         el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
@@ -550,7 +571,7 @@ async function fetchGitHubRepos() {
             container.appendChild(card);
         });
 
-        observeCards();
+        observeCards(container);
         add3DTiltEffect();
     } catch {
         container.innerHTML = `<p class="error-text">Unable to load projects. Visit <a href="https://github.com/Raul909" target="_blank" rel="noopener noreferrer">GitHub →</a></p>`;
@@ -602,8 +623,8 @@ function renderVideos(videoIds, container) {
         card.className = 'video-card';
         card.setAttribute('aria-label', 'Watch video on YouTube');
         card.innerHTML = `
-            <img src="https://img.youtube.com/vi/${id}/maxresdefault.jpg"
-                 onerror="this.src='https://img.youtube.com/vi/${id}/hqdefault.jpg'"
+            <img src="https://img.youtube.com/vi/${id}/hqdefault.jpg"
+                 onerror="this.src='https://img.youtube.com/vi/${id}/mqdefault.jpg'"
                  alt="Video thumbnail" loading="lazy">
             <div class="video-play-overlay">
                 <svg width="56" height="40" viewBox="0 0 68 48" aria-hidden="true">
@@ -614,7 +635,7 @@ function renderVideos(videoIds, container) {
         `;
         container.appendChild(card);
     });
-    observeCards();
+    observeCards(container);
 }
 
 async function loadYouTubeVideos() {
@@ -636,20 +657,12 @@ async function loadYouTubeVideos() {
     if (longVideoIds.length > 0) {
         renderVideos(longVideoIds, container);
         
-        // Auto-scroll ping-pong slider
+        // Auto-scroll ping-pong slider - only run when section is visible
         let direction = 1;
-        let scrollInterval = setInterval(() => {
-            container.scrollLeft += direction;
-            if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 1) {
-                direction = -1;
-            } else if (container.scrollLeft <= 0) {
-                direction = 1;
-            }
-        }, 30);
+        let scrollInterval = null;
 
-        container.addEventListener('mouseenter', () => clearInterval(scrollInterval));
-        container.addEventListener('mouseleave', () => {
-            clearInterval(scrollInterval); // Prevent multiple intervals
+        const startScrolling = () => {
+            if (scrollInterval) return;
             scrollInterval = setInterval(() => {
                 container.scrollLeft += direction;
                 if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 1) {
@@ -657,8 +670,26 @@ async function loadYouTubeVideos() {
                 } else if (container.scrollLeft <= 0) {
                     direction = 1;
                 }
-            }, 30);
-        });
+            }, 40);
+        };
+
+        const stopScrolling = () => {
+            if (scrollInterval) {
+                clearInterval(scrollInterval);
+                scrollInterval = null;
+            }
+        };
+
+        const sliderObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) startScrolling();
+                else stopScrolling();
+            });
+        }, { threshold: 0.05 });
+        sliderObserver.observe(container);
+
+        container.addEventListener('mouseenter', stopScrolling);
+        container.addEventListener('mouseleave', startScrolling);
     } else {
         container.innerHTML = `
             <div class="empty-state">
@@ -697,6 +728,11 @@ const PHOTOS = [
     'https://res.cloudinary.com/dgf8kbruq/image/upload/v1771450020/IMG_20251214_143411272_hiujue.jpg',
 ];
 
+function getCloudinaryUrl(url, width = 600) {
+    if (!url.includes('cloudinary.com')) return url;
+    return url.replace('/image/upload/', `/image/upload/f_auto,q_auto,w_${width}/`);
+}
+
 function loadPhotoGallery() {
     const container = document.getElementById('photo-gallery');
     container.innerHTML = '';
@@ -704,12 +740,14 @@ function loadPhotoGallery() {
     PHOTOS.forEach((url, i) => {
         const item = document.createElement('div');
         item.className = 'gallery-item';
-        item.innerHTML = `<img src="${url}" alt="Photography ${i + 1}" loading="lazy">`;
+        // Load optimized 600px thumbnail for grid
+        item.innerHTML = `<img src="${getCloudinaryUrl(url, 600)}" alt="Photography ${i + 1}" loading="lazy">`;
+        // Use 1600px optimized image for lightbox
         item.addEventListener('click', () => openLightbox(PHOTOS, i));
         container.appendChild(item);
     });
 
-    observeCards();
+    observeCards(container);
 }
 
 loadPhotoGallery();
@@ -727,7 +765,7 @@ function openLightbox(images, startIndex) {
         <div class="lightbox-content">
             <button class="lightbox-close" aria-label="Close lightbox">&times;</button>
             <button class="lightbox-prev" aria-label="Previous photo">&#10094;</button>
-            <img src="${images[current]}" alt="Photo ${current + 1} of ${images.length}">
+            <img src="${getCloudinaryUrl(images[current], 1600)}" alt="Photo ${current + 1} of ${images.length}">
             <button class="lightbox-next" aria-label="Next photo">&#10095;</button>
             <div class="lightbox-counter">${current + 1} / ${images.length}</div>
         </div>
@@ -742,7 +780,7 @@ function openLightbox(images, startIndex) {
         current = (idx + images.length) % images.length;
         img.style.opacity = '0';
         setTimeout(() => {
-            img.src = images[current];
+            img.src = getCloudinaryUrl(images[current], 1600);
             img.alt = `Photo ${current + 1} of ${images.length}`;
             counter.textContent = `${current + 1} / ${images.length}`;
             img.style.opacity = '1';
@@ -849,21 +887,5 @@ themeToggle.addEventListener('click', () => {
 
 // Initialize Custom UX
 window.addEventListener('DOMContentLoaded', () => {
-    // Section Reveals
-    const observerOptions = {
-        root: null,
-        rootMargin: '-50px',
-        threshold: 0.1
-    };
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('is-visible');
-            }
-        });
-    }, observerOptions);
-
-    document.querySelectorAll('.section-reveal').forEach(el => observer.observe(el));
-
     // Tilt effect initialized via add3DTiltEffect()
 });

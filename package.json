@@ -1,0 +1,10 @@
+{
+  "name": "rahul-biswas-portfolio",
+  "version": "1.0.0",
+  "description": "Optimized developer portfolio with real-time ASCII backgrounds.",
+  "private": true,
+  "devDependencies": {
+    "clean-css": "^5.3.3",
+    "terser": "^5.31.1"
+  }
+}
