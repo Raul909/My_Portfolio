@@ -106,26 +106,26 @@ body {
 
 html {
     scrollbar-width: thin;
-    scrollbar-color: rgba(232, 93, 63, 0.2) #07070C;
+    scrollbar-color: var(--border-active) var(--bg);
 }
 
 ::-webkit-scrollbar {
     width: 6px;
 }
 ::-webkit-scrollbar-track {
-    background: #07070C;
+    background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-    background: rgba(232, 93, 63, 0.4);
+    background: var(--border-active);
     border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(232, 93, 63, 0.8);
+    background: var(--accent);
 }
 
 ::selection {
-    background: rgba(232, 93, 63, 0.4);
-    color: #F0F0F5;
+    background: var(--border-active);
+    color: var(--title-primary);
 }
 
 .stagger-children > * {
