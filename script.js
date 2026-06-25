@@ -28,7 +28,7 @@ class AsciiRenderer {
             this.video.playbackRate = options.speed2 || 1.0;
         } else {
             this.fontSize = options.fontSize1 || 18;      // Low-res
-            this.targetFPS = options.fps1 || 15;          // 15 FPS
+            this.targetFPS = options.fps1 || 12;          // 12 FPS for better performance
             this.video.playbackRate = options.speed1 || 0.8;
         }
 
@@ -45,6 +45,11 @@ class AsciiRenderer {
         this.handleMouseMove = this.handleMouseMove.bind(this);
         
         window.addEventListener('resize', this.handleResize);
+        if (window.ResizeObserver) {
+            this.resizeObserver = new ResizeObserver(() => this.handleResize());
+            if (this.canvas) this.resizeObserver.observe(this.canvas);
+        }
+
         if (this.canvas) {
             window.addEventListener('mousemove', this.handleMouseMove);
             this.canvas.addEventListener('mouseleave', () => { this.mouseX = -1000; this.mouseY = -1000; });
@@ -159,13 +164,6 @@ class AsciiRenderer {
         }
 
         requestAnimationFrame(this.render);
-
-        const dpr = window.devicePixelRatio || 1;
-        const targetWidth = Math.floor(this.canvas.offsetWidth * dpr);
-        const targetHeight = Math.floor(this.canvas.offsetHeight * dpr);
-        if (this.canvas.width !== targetWidth || this.canvas.height !== targetHeight) {
-            this.handleResize();
-        }
 
         const elapsed = time - this.lastFrameTime;
         if (elapsed < this.fpsInterval) return;
@@ -340,17 +338,23 @@ sections.forEach(s => navObserver.observe(s));
 const scrollProgress = document.getElementById('scroll-progress');
 const navbar = document.getElementById('navbar');
 
+let isScrolling = false;
 window.addEventListener('scroll', () => {
-    const total = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-    scrollProgress.style.width = (window.scrollY / total * 100) + '%';
-    navbar.classList.toggle('scrolled', window.scrollY > 50);
+    if (!isScrolling) {
+        window.requestAnimationFrame(() => {
+            const total = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            scrollProgress.style.transform = `scaleX(${window.scrollY / total})`;
+            navbar.classList.toggle('scrolled', window.scrollY > 50);
 
-
-    // Hero fade
-    const heroContent = document.querySelector('.hero-content');
-    if (heroContent && window.scrollY < window.innerHeight) {
-        heroContent.style.transform = `translateY(${window.scrollY * 0.25}px)`;
-        heroContent.style.opacity = 1 - (window.scrollY / window.innerHeight) * 0.9;
+            // Hero fade
+            const heroContent = document.querySelector('.hero-content');
+            if (heroContent && window.scrollY < window.innerHeight) {
+                heroContent.style.transform = `translateY(${window.scrollY * 0.25}px)`;
+                heroContent.style.opacity = 1 - (window.scrollY / window.innerHeight) * 0.9;
+            }
+            isScrolling = false;
+        });
+        isScrolling = true;
     }
 }, { passive: true });
 
@@ -995,17 +999,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Navbar scroll effect
-    const navbar = document.getElementById('navbar');
-    if (navbar) {
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 50) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
-        });
-    }
+    // Navbar scroll effect handled in main scroll listener
 
     // Section Reveals
     const observerOptions = {
