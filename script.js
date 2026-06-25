@@ -780,15 +780,37 @@ function openLightbox(images, startIndex) {
     const img = lb.querySelector('img');
     const counter = lb.querySelector('.lightbox-counter');
 
+    let expectedSrc = null;
     function go(idx) {
         current = (idx + images.length) % images.length;
         img.style.opacity = '0';
+        
+        const newSrc = getCloudinaryUrl(images[current], 1600);
+        expectedSrc = newSrc;
+        
+        let isLoaded = false;
+        let isFaded = false;
+
+        const tempImg = new Image();
+        tempImg.onload = () => {
+            if (expectedSrc !== newSrc) return;
+            isLoaded = true;
+            if (isFaded) showNext();
+        };
+        tempImg.src = newSrc;
+
         setTimeout(() => {
-            img.src = getCloudinaryUrl(images[current], 1600);
+            if (expectedSrc !== newSrc) return;
+            isFaded = true;
+            if (isLoaded) showNext();
+        }, 150);
+
+        function showNext() {
+            img.src = newSrc;
             img.alt = `Photo ${current + 1} of ${images.length}`;
             counter.textContent = `${current + 1} / ${images.length}`;
             img.style.opacity = '1';
-        }, 150);
+        }
     }
 
     function close() {
