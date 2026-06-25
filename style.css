@@ -221,13 +221,9 @@ html {
     left: 0;
     width: 0;
     height: 1.5px;
-    background: #E85D3F; /* Orange */
+    background: var(--accent);
     transition: width 0.25s ease;
     border-radius: 2px;
-}
-
-.light-theme .nav-links a::after {
-    background: #00bcd4; /* Cyan */
 }
 
 .nav-links a:hover,
@@ -299,7 +295,7 @@ html {
     inset: 0;
     opacity: 0;
     transition: opacity 0.5s ease;
-    background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(232,93,63,0.08) 0%, transparent 60%);
+    background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), var(--accent-dim) 0%, transparent 60%);
     pointer-events: none;
     z-index: 0;
 }
@@ -326,7 +322,8 @@ html {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(232,93,63,0.3), transparent);
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.3;
     z-index: 0;
 }
 
@@ -369,7 +366,7 @@ html {
 
 .ach-year {
     display: block;
-    color: #E85D3F;
+    color: var(--accent);
     font-size: 0.875rem;
     font-family: 'JetBrains Mono', monospace;
     margin-bottom: 0.5rem;
