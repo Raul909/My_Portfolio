@@ -1,6 +1,9 @@
 [build]
   command = "bash build.sh"
   publish = "."
+
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "WEB3FORMS_KEY"
 [[headers]]
   for = "/*"
   [headers.values]
