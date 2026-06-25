@@ -544,7 +544,7 @@ async function fetchGitHubRepos() {
 
             // Preview: use screenshot for repos with a live URL, else GitHub OG image
             const previewSrc = liveUrl
-                ? `https://image.thum.io/get/width/600/crop/400/noanimate/${encodeURIComponent(liveUrl)}`
+                ? `https://image.thum.io/get/width/600/crop/400/noanimate/${liveUrl}`
                 : `https://opengraph.githubassets.com/1/${repo.full_name}`;
 
             const card = document.createElement('div');
