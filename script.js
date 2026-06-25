@@ -842,13 +842,14 @@ function openLightbox(images, startIndex) {
 // ─── Contact Form (Netlify Forms) ─────────────────────────────────────────────
 
 // Real-time email validation
-const emailInput = document.getElementById('email');
+const emailRegex = /^[^\s@]+@(gmail\.com|yahoo\.com|outlook\.com)$/i;
+const emailInput = document.querySelector('input[name="email"]');
 if (emailInput) {
     emailInput.addEventListener('input', (e) => {
         const val = e.target.value.trim();
         if (val === '') {
             e.target.style.borderColor = 'var(--border)';
-        } else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+        } else if (emailRegex.test(val)) {
             e.target.style.borderColor = '#00D4AA'; // Green for valid
         } else {
             e.target.style.borderColor = '#E85D3F'; // Red for invalid
@@ -871,8 +872,8 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
         msg.className = 'form-message error';
         return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        msg.textContent = 'Please enter a valid email address.';
+    if (!emailRegex.test(email)) {
+        msg.textContent = 'Please enter a valid Gmail, Yahoo, or Outlook address.';
         msg.className = 'form-message error';
         return;
     }
