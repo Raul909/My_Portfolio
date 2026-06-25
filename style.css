@@ -42,7 +42,7 @@
     --light: #121212;
     --muted: rgba(18, 18, 18, 0.6);
     --title-primary: #1A1A24;
-    --title-accent: #C73E1D;
+    --title-accent: #008eb3;
 }
 
 /* Low-End (Tier 1) Hardware Fallbacks - disable expensive effects */
