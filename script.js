@@ -788,41 +788,35 @@ function openLightbox(images, startIndex) {
     const loader = lb.querySelector('.lightbox-loader');
 
     let expectedSrc = null;
+    let tempImg = null; // Prevent GC in Safari
+    
     function go(idx) {
         current = (idx + images.length) % images.length;
-        img.style.opacity = '0';
         
         const newSrc = getCloudinaryUrl(images[current], 1600);
         expectedSrc = newSrc;
         
-        let isLoaded = false;
-        let isFaded = false;
+        // Instant visual feedback
+        counter.textContent = `${current + 1} / ${images.length}`;
+        img.style.opacity = '0.4'; // Dim to indicate transition
+        
+        // Show loader only if network is slow (prevents flashing on cached images)
+        let loaderTimeout = setTimeout(() => {
+            if (expectedSrc === newSrc) loader.classList.add('active');
+        }, 100);
 
-        const tempImg = new Image();
+        tempImg = new Image();
         tempImg.onload = () => {
-            if (expectedSrc !== newSrc) return;
-            isLoaded = true;
-            if (isFaded) showNext();
-        };
-        tempImg.src = newSrc;
-
-        setTimeout(() => {
-            if (expectedSrc !== newSrc) return;
-            isFaded = true;
-            if (!isLoaded) {
-                loader.classList.add('active'); // Show loader if it's taking time
-            } else {
-                showNext();
-            }
-        }, 150);
-
-        function showNext() {
+            if (expectedSrc !== newSrc) return; // Ignore stale rapid clicks
+            
+            clearTimeout(loaderTimeout);
             loader.classList.remove('active');
+            
             img.src = newSrc;
             img.alt = `Photo ${current + 1} of ${images.length}`;
-            counter.textContent = `${current + 1} / ${images.length}`;
             img.style.opacity = '1';
-        }
+        };
+        tempImg.src = newSrc;
     }
 
     function close() {
