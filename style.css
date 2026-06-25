@@ -77,8 +77,8 @@ body {
 
 .agent-hud {
     position: fixed;
-    bottom: 2.5rem;
-    left: 2.5rem;
+    bottom: 1rem;
+    left: 1rem;
     z-index: 50;
     pointer-events: none;
     transform: translateX(-20px);
@@ -136,8 +136,8 @@ body {
 }
 
 .aura-toggle-orb {
-    width: 16px;
-    height: 16px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: var(--aura-color, #4A4A55);
     box-shadow: 0 0 12px var(--aura-color, #4A4A55);
@@ -147,10 +147,10 @@ body {
 .aura-container {
     position: relative;
     pointer-events: auto;
-    background: rgba(18, 18, 26, 0.4);
-    backdrop-filter: blur(24px) saturate(1.2);
-    -webkit-backdrop-filter: blur(24px) saturate(1.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(18, 18, 26, 0.25);
+    backdrop-filter: blur(32px) saturate(1.5);
+    -webkit-backdrop-filter: blur(32px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 20px;
     padding: 24px;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -158,6 +158,12 @@ body {
     min-width: 280px;
     max-width: 320px;
     transform-origin: bottom left;
+}
+
+.light-theme .aura-container {
+    background: rgba(255, 255, 255, 0.35);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .aura-close {
