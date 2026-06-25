@@ -799,7 +799,7 @@ function openLightbox(images, startIndex) {
         
         // Instant visual feedback
         counter.textContent = `${current + 1} / ${images.length}`;
-        img.style.opacity = '0.4'; // Dim to indicate transition
+        img.style.opacity = '0'; // Hide old image instantly to avoid lingering glitch
         
         // Show loader only if network is slow (prevents flashing on cached images)
         let loaderTimeout = setTimeout(() => {

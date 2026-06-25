@@ -106,7 +106,7 @@ body {
 
 html {
     scrollbar-width: thin;
-    scrollbar-color: var(--border-active) var(--bg);
+    scrollbar-color: var(--accent) var(--bg);
 }
 
 ::-webkit-scrollbar {
@@ -116,11 +116,11 @@ html {
     background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-    background: var(--border-active);
+    background: var(--accent);
     border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent);
+    background: var(--accent-dark);
 }
 
 ::selection {
