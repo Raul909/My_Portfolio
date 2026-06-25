@@ -141,6 +141,7 @@ class AsciiRenderer {
     }
 
     handleMouseMove(e) {
+        if (!this.isRendering) return;
         const rect = this.canvas.getBoundingClientRect();
         this.targetMouseX = e.clientX - rect.left;
         this.targetMouseY = e.clientY - rect.top;
@@ -427,15 +428,44 @@ sections.forEach(s => sectionObserver.observe(s));
 // ─── 3D Tilt ──────────────────────────────────────────────────────────────────
 
 function add3DTiltEffect() {
-    document.querySelectorAll('.project-card, .about-card').forEach(card => {
+    document.querySelectorAll('.tilt-card, .project-card, .about-card').forEach(card => {
+        let isHovering = false;
+        let animationFrameId = null;
+
         card.addEventListener('mousemove', (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = (e.clientX - rect.left - rect.width / 2) / 12;
-            const y = (e.clientY - rect.top - rect.height / 2) / 12;
-            card.style.transform = `perspective(1000px) rotateY(${x}deg) rotateX(${-y}deg) translateZ(8px)`;
+            if (!isHovering) isHovering = true;
+            
+            if (!animationFrameId) {
+                animationFrameId = requestAnimationFrame(() => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    // Set CSS variables for the glow
+                    card.style.setProperty('--mouse-x', `${x}px`);
+                    card.style.setProperty('--mouse-y', `${y}px`);
+                    
+                    // Calculate 3D tilt
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const rotateX = ((y - centerY) / centerY) * -10;
+                    const rotateY = ((x - centerX) / centerX) * 10;
+                    
+                    if (isHovering) {
+                        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                    }
+                    animationFrameId = null;
+                });
+            }
         });
+        
         card.addEventListener('mouseleave', () => {
-            card.style.transform = '';
+            isHovering = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
         });
     });
 }
@@ -835,28 +865,5 @@ window.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.section-reveal').forEach(el => observer.observe(el));
 
-    // Tilt Cards Glow & 3D Effect
-    document.querySelectorAll('.tilt-card').forEach(card => {
-        card.addEventListener('mousemove', (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            // Set CSS variables for the glow
-            card.style.setProperty('--mouse-x', `${x}px`);
-            card.style.setProperty('--mouse-y', `${y}px`);
-            
-            // Calculate 3D tilt
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const rotateX = ((y - centerY) / centerY) * -10;
-            const rotateY = ((x - centerX) / centerX) * 10;
-            
-            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
-        });
-        
-        card.addEventListener('mouseleave', () => {
-            card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
-        });
-    });
+    // Tilt effect initialized via add3DTiltEffect()
 });
