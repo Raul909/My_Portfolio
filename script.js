@@ -334,16 +334,12 @@ const navObserver = new IntersectionObserver((entries) => {
 
 sections.forEach(s => navObserver.observe(s));
 
-// Scroll progress
-const scrollProgress = document.getElementById('scroll-progress');
 const navbar = document.getElementById('navbar');
 
 let isScrolling = false;
 window.addEventListener('scroll', () => {
     if (!isScrolling) {
         window.requestAnimationFrame(() => {
-            const total = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-            scrollProgress.style.transform = `scaleX(${window.scrollY / total})`;
             navbar.classList.toggle('scrolled', window.scrollY > 50);
 
             // Hero fade
