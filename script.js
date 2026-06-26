@@ -77,12 +77,15 @@ class AsciiRenderer {
         this.isRendering = false;
         this.lastFrameTime = 0;
         this.fpsInterval = 1000 / this.targetFPS;
+        this.canvasBounds = this.canvas.getBoundingClientRect();
 
         this.handleResize = this.handleResize.bind(this);
         this.render = this.render.bind(this);
         this.handleMouseMove = this.handleMouseMove.bind(this);
+        this.updateBounds = this.updateBounds.bind(this);
         
         window.addEventListener('resize', this.handleResize);
+        window.addEventListener('scroll', this.updateBounds, { passive: true });
         if (window.ResizeObserver) {
             this.resizeObserver = new ResizeObserver(() => this.handleResize());
             if (this.canvas) this.resizeObserver.observe(this.canvas);
@@ -153,10 +156,17 @@ class AsciiRenderer {
         document.addEventListener('touchstart', handleInteraction);
     }
 
+    updateBounds() {
+        if (!this.canvas) return;
+        this.canvasBounds = this.canvas.getBoundingClientRect();
+    }
+
     handleResize() {
         const width = this.canvas.offsetWidth;
         const height = this.canvas.offsetHeight;
         if (!width || !height) return;
+
+        this.updateBounds();
 
         const dpr = window.devicePixelRatio || 1;
         this.canvas.width = width * dpr;
@@ -182,9 +192,8 @@ class AsciiRenderer {
 
     handleMouseMove(e) {
         if (!this.isRendering) return;
-        const rect = this.canvas.getBoundingClientRect();
-        this.targetMouseX = e.clientX - rect.left;
-        this.targetMouseY = e.clientY - rect.top;
+        this.targetMouseX = e.clientX - this.canvasBounds.left;
+        this.targetMouseY = e.clientY - this.canvasBounds.top;
     }
 
     render(time) {
