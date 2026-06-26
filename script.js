@@ -1,3 +1,41 @@
+// ─── Security Helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Escapes HTML characters to prevent XSS.
+ */
+function escapeHTML(str) {
+    if (typeof str !== 'string') return str;
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+/**
+ * Sanitizes URLs to ensure they use a safe protocol.
+ */
+function sanitizeUrl(url) {
+    if (!url) return '';
+    try {
+        const parsed = new URL(url);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+            return parsed.toString();
+        }
+        return '#';
+    } catch (e) {
+        // If it's a relative URL, we consider it safe for now,
+        // or return empty/default if we only want absolute URLs.
+        // Given the use-cases (GitHub API, YouTube), we expect absolute URLs.
+        // Allow relative URLs starting with / (excluding //)
+        if (url.startsWith('/') && !url.startsWith('//')) {
+            return url;
+        }
+        return '#';
+    }
+}
+
 // ─── ASCII Video Background ───────────────────────────────────────────────────
 
 class AsciiRenderer {
@@ -104,7 +142,9 @@ class AsciiRenderer {
                             requestAnimationFrame(this.render);
                         }
                     })
-                    .catch(e => console.log(e));
+                    .catch(err => {
+                        // Silently ignore autoplay rejections to prevent console errors
+                    });
             }
             document.removeEventListener('click', handleInteraction);
             document.removeEventListener('touchstart', handleInteraction);
@@ -191,13 +231,13 @@ class AsciiRenderer {
         if (this.tier === 1) {
             // OPTIMIZATION FOR LOW-END DEVICES: 
             this.ctx.fillStyle = '#ffffff';
+            let idx = 0;
             for (let y = 0; y < this.rows; y++) {
                 for (let x = 0; x < this.cols; x++) {
-                    const idx = (y * this.cols + x) * 4;
-                    const r = data[idx];
-                    const g = data[idx+1];
-                    const b = data[idx+2];
-                    const a = data[idx+3];
+                    const r = data[idx++];
+                    const g = data[idx++];
+                    const b = data[idx++];
+                    const a = data[idx++];
 
                     if (a === 0) continue;
                     const avg = (r + g + b) / 3;
@@ -239,13 +279,13 @@ class AsciiRenderer {
 
         } else {
             // HIGH-END/MID-RANGE: Exact pixel color mapping
+            let idx = 0;
             for (let y = 0; y < this.rows; y++) {
                 for (let x = 0; x < this.cols; x++) {
-                    const idx = (y * this.cols + x) * 4;
-                    const r = data[idx];
-                    const g = data[idx+1];
-                    const b = data[idx+2];
-                    const a = data[idx+3];
+                    const r = data[idx++];
+                    const g = data[idx++];
+                    const b = data[idx++];
+                    const a = data[idx++];
 
                     if (a === 0) continue;
 
@@ -549,34 +589,43 @@ async function fetchGitHubRepos() {
             if (!liveUrl && repo.name.toLowerCase().includes('portfolio')) {
                 liveUrl = 'https://raul909portfolio.netlify.app/';
             }
+            if (liveUrl) {
+                liveUrl = sanitizeUrl(liveUrl);
+            }
 
             // Preview: use screenshot for repos with a live URL, else GitHub OG image
             const previewSrc = liveUrl
                 ? `https://image.thum.io/get/width/600/crop/400/noanimate/${liveUrl}`
                 : `https://opengraph.githubassets.com/1/${repo.full_name}`;
 
+            const safePreviewSrc = sanitizeUrl(previewSrc);
+            const safeRepoName = escapeHTML(repo.name);
+            const safeDescription = escapeHTML(repo.description || 'No description available.');
+            const safeLanguage = escapeHTML(repo.language || '');
+            const safeHtmlUrl = sanitizeUrl(repo.html_url);
+
             const card = document.createElement('div');
             card.className = 'project-card';
             card.innerHTML = `
                 <div class="project-preview">
-                    <img src="${previewSrc}" 
-                         alt="${repo.name} preview"
+                    <img src="${safePreviewSrc}"
+                         alt="${safeRepoName} preview"
                          class="project-preview-image"
                          loading="lazy"
                          width="600" height="340"
-                         style="width: 100%; height: auto; display: ${previewSrc ? 'block' : 'none'}; border-radius: 6px; margin-bottom: 1rem;">
+                         style="width: 100%; height: auto; display: ${safePreviewSrc ? 'block' : 'none'}; border-radius: 6px; margin-bottom: 1rem;">
                 </div>
                 <div class="project-content">
-                    <h3>${repo.name.replace(/[-_]/g, ' ')}</h3>
-                    <p>${repo.description || 'No description available.'}</p>
+                    <h3>${safeRepoName.replace(/[-_]/g, ' ')}</h3>
+                    <p>${safeDescription}</p>
                     <div class="project-tags">
-                        ${repo.language ? `<span class="tag">${repo.language}</span>` : ''}
-                        ${repo.stargazers_count > 0 ? `<span class="tag">⭐ ${repo.stargazers_count}</span>` : ''}
-                        ${repo.forks_count > 0 ? `<span class="tag">🔱 ${repo.forks_count}</span>` : ''}
+                        ${safeLanguage ? `<span class="tag">${safeLanguage}</span>` : ''}
+                        ${repo.stargazers_count > 0 ? `<span class="tag">⭐ ${Number(repo.stargazers_count)}</span>` : ''}
+                        ${repo.forks_count > 0 ? `<span class="tag">🔱 ${Number(repo.forks_count)}</span>` : ''}
                     </div>
                     <div class="project-links">
-                        <a href="${repo.html_url}" target="_blank" rel="noopener noreferrer" class="code-link">View Code →</a>
-                        ${liveUrl ? `<a href="${liveUrl}" target="_blank" rel="noopener noreferrer" class="live-demo-btn">Live Demo →</a>` : ''}
+                        <a href="${safeHtmlUrl}" target="_blank" rel="noopener noreferrer" class="code-link">View Code →</a>
+                        ${liveUrl && liveUrl !== '#' ? `<a href="${liveUrl}" target="_blank" rel="noopener noreferrer" class="live-demo-btn">Live Demo →</a>` : ''}
                     </div>
                 </div>
             `;
@@ -628,14 +677,24 @@ async function fetchYouTubeFeed() {
 function renderVideos(videoIds, container) {
     container.innerHTML = '';
     videoIds.forEach(id => {
+        // Strict validation: YouTube IDs are typically 11 characters (A-Z, a-z, 0-9, -, _)
+        if (!/^[a-zA-Z0-9_-]{10,12}$/.test(id)) {
+            console.warn(`Invalid YouTube video ID detected and skipped: ${id}`);
+            return;
+        }
+
+        const safeId = escapeHTML(id);
+        const safeUrl = sanitizeUrl(`https://www.youtube.com/watch?v=${safeId}`);
+        const safeImgSrc = sanitizeUrl(`https://img.youtube.com/vi/${safeId}/hqdefault.jpg`);
+
         const card = document.createElement('a');
-        card.href = `https://www.youtube.com/watch?v=${id}`;
+        card.href = safeUrl;
         card.target = '_blank';
         card.rel = 'noopener noreferrer';
         card.className = 'video-card';
         card.setAttribute('aria-label', 'Watch video on YouTube');
         card.innerHTML = `
-            <img src="https://img.youtube.com/vi/${id}/hqdefault.jpg" 
+            <img src="${safeImgSrc}"
                  alt="Video thumbnail" loading="lazy" width="480" height="360"
                  class="video-thumbnail-img">
             <div class="video-play-overlay">
