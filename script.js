@@ -142,7 +142,9 @@ class AsciiRenderer {
                             requestAnimationFrame(this.render);
                         }
                     })
-                    .catch(e => console.log(e));
+                    .catch(err => {
+                        // Silently ignore autoplay rejections to prevent console errors
+                    });
             }
             document.removeEventListener('click', handleInteraction);
             document.removeEventListener('touchstart', handleInteraction);
