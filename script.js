@@ -227,13 +227,13 @@ class AsciiRenderer {
         if (this.tier === 1) {
             // OPTIMIZATION FOR LOW-END DEVICES: 
             this.ctx.fillStyle = '#ffffff';
+            let idx = 0;
             for (let y = 0; y < this.rows; y++) {
                 for (let x = 0; x < this.cols; x++) {
-                    const idx = (y * this.cols + x) * 4;
-                    const r = data[idx];
-                    const g = data[idx+1];
-                    const b = data[idx+2];
-                    const a = data[idx+3];
+                    const r = data[idx++];
+                    const g = data[idx++];
+                    const b = data[idx++];
+                    const a = data[idx++];
 
                     if (a === 0) continue;
                     const avg = (r + g + b) / 3;
@@ -275,13 +275,13 @@ class AsciiRenderer {
 
         } else {
             // HIGH-END/MID-RANGE: Exact pixel color mapping
+            let idx = 0;
             for (let y = 0; y < this.rows; y++) {
                 for (let x = 0; x < this.cols; x++) {
-                    const idx = (y * this.cols + x) * 4;
-                    const r = data[idx];
-                    const g = data[idx+1];
-                    const b = data[idx+2];
-                    const a = data[idx+3];
+                    const r = data[idx++];
+                    const g = data[idx++];
+                    const b = data[idx++];
+                    const a = data[idx++];
 
                     if (a === 0) continue;
 
