@@ -186,6 +186,8 @@ class AsciiRenderer {
         this.ctx.textBaseline = 'top';
 
         // 4. Render ASCII
+        const densityMaxIdx = this.density.length - 2;
+
         if (this.tier === 1) {
             // OPTIMIZATION FOR LOW-END DEVICES: 
             this.ctx.fillStyle = '#ffffff';
@@ -201,8 +203,8 @@ class AsciiRenderer {
                     const avg = (r + g + b) / 3;
                     if (avg < 25) continue; 
 
-                    const charIdx = Math.floor(((avg - 25) / 230) * (this.density.length - 2));
-                    const mappedCharIdx = (this.density.length - 2) - Math.min(Math.max(charIdx, 0), this.density.length - 2);
+                    const charIdx = Math.floor(((avg - 25) / 230) * densityMaxIdx);
+                    const mappedCharIdx = densityMaxIdx - Math.min(Math.max(charIdx, 0), densityMaxIdx);
                     const char = this.density[mappedCharIdx];
 
                     let drawX = x * this.charWidth;
@@ -250,8 +252,8 @@ class AsciiRenderer {
                     const avg = (r + g + b) / 3;
                     if (avg < 25) continue; 
 
-                    const charIdx = Math.floor(((avg - 25) / 230) * (this.density.length - 2));
-                    const mappedCharIdx = (this.density.length - 2) - Math.min(Math.max(charIdx, 0), this.density.length - 2);
+                    const charIdx = Math.floor(((avg - 25) / 230) * densityMaxIdx);
+                    const mappedCharIdx = densityMaxIdx - Math.min(Math.max(charIdx, 0), densityMaxIdx);
                     const char = this.density[mappedCharIdx];
 
                     let drawX = x * this.charWidth;
