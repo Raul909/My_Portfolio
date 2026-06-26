@@ -580,10 +580,41 @@ async function fetchGitHubRepos() {
     const container = document.getElementById('github-projects');
     container.innerHTML = '<p class="loading-text">Loading projects...</p>';
 
+    const CACHE_KEY = 'github_repos_cache';
+    const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
     try {
-        const res = await fetch('https://api.github.com/users/Raul909/repos?sort=updated&per_page=12');
-        if (!res.ok) throw new Error('GitHub API error');
-        const repos = await res.json();
+        let repos = null;
+
+        // Check cache first
+        try {
+            const cachedData = sessionStorage.getItem(CACHE_KEY);
+            if (cachedData) {
+                const parsed = JSON.parse(cachedData);
+                if (Date.now() - parsed.timestamp < CACHE_TTL_MS) {
+                    repos = parsed.data;
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to read from cache:', e);
+        }
+
+        // Fetch if not cached or expired
+        if (!repos) {
+            const res = await fetch('https://api.github.com/users/Raul909/repos?sort=updated&per_page=12');
+            if (!res.ok) throw new Error('GitHub API error');
+            repos = await res.json();
+
+            // Save to cache
+            try {
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+                    timestamp: Date.now(),
+                    data: repos
+                }));
+            } catch (e) {
+                console.warn('Failed to save to cache:', e);
+            }
+        }
 
         const filtered = repos.filter(r => !r.fork).slice(0, 6);
         container.innerHTML = '';
