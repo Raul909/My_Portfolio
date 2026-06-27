@@ -316,8 +316,12 @@ class AsciiRenderer {
         this.ctx.font = `bold ${currentFontSize}px "JetBrains Mono", monospace`;
         this.ctx.textAlign = 'left';
         this.ctx.textBaseline = 'top';
-        this.ctx.fillStyle = '#080808';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        if (this.tier === 1) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        } else {
+            this.ctx.fillStyle = '#080808';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
         this.buildCharAtlas();
 
         if (this.tier === 1) {
@@ -379,6 +383,8 @@ class AsciiRenderer {
 
         const isMouseClose = this.mouseX > -500 && this.mouseY > -500;
 
+        if (this.video.readyState < 2) return; // Prevent InvalidStateError crash
+
         // 1. Draw video downscaled to offscreen canvas
         if (this.filter !== 'none') this.offscreenCtx.filter = this.filter;
         this.offscreenCtx.drawImage(this.video, 0, 0, this.cols, this.rows);
@@ -386,9 +392,13 @@ class AsciiRenderer {
         const imageData = this.offscreenCtx.getImageData(0, 0, this.cols, this.rows);
         const data = imageData.data;
 
-        // 2. Clear canvas with black background
-        this.ctx.fillStyle = '#080808';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        // 2. Clear canvas appropriately
+        if (this.tier === 1) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        } else {
+            this.ctx.fillStyle = '#080808';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
 
         // 3. Prepare text rendering state
         const currentFontSize = Math.round(this.charHeight);
