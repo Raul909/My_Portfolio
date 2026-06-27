@@ -520,7 +520,7 @@ html {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.35;
+    mix-blend-mode: screen;
 }
 
 .hero-overlay {
@@ -893,7 +893,7 @@ section.in-view {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.45;
+    mix-blend-mode: screen;
 }
 
 .videos-overlay {

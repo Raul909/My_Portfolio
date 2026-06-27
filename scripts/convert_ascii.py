@@ -24,7 +24,7 @@ def convert_to_ascii(input_path, output_path):
     out_w, out_h = orig_w, orig_h
     font_size = 18 if orig_w > 1200 else 14 # scale font based on resolution
     
-    font_path = "/System/Library/Fonts/Supplemental/Courier New Bold.ttf"
+    font_path = "fonts/ttf/JetBrainsMono-Bold.ttf"
     try:
         font = ImageFont.truetype(font_path, font_size)
     except IOError:
@@ -41,7 +41,7 @@ def convert_to_ascii(input_path, output_path):
     density = "Ñ@#W$9876543210?!abc;:+=-,._ "
     density_len = len(density) - 1
 
-    temp_output = "temp_" + os.path.basename(output_path)
+    temp_output = "temp_render.mp4"
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(temp_output, fourcc, fps, (out_w, out_h))
 
@@ -58,7 +58,8 @@ def convert_to_ascii(input_path, output_path):
         small_frame = cv2.resize(frame, (cols, rows))
         small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
-        img = Image.new('RGB', (out_w, out_h), color=(8, 8, 8))
+        # Use pure black background for screen blending
+        img = Image.new('RGB', (out_w, out_h), color=(0, 0, 0))
         draw = ImageDraw.Draw(img)
 
         for y in range(rows):
@@ -73,7 +74,12 @@ def convert_to_ascii(input_path, output_path):
                 char_idx = min(max(char_idx, 0), density_len)
                 char = density[density_len - char_idx]
                 
-                draw.text((x * char_w, y * char_h), char, font=font, fill=(r, g, b))
+                # Boost brightness of the text to prevent washing out
+                r_boost = min(int(r * 1.5), 255)
+                g_boost = min(int(g * 1.5), 255)
+                b_boost = min(int(b * 1.5), 255)
+                
+                draw.text((x * char_w, y * char_h), char, font=font, fill=(r_boost, g_boost, b_boost))
 
         out_frame = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
         out.write(out_frame)
@@ -83,10 +89,11 @@ def convert_to_ascii(input_path, output_path):
 
     print(f"Done rendering frames. Compressing to {output_path} using ffmpeg...")
     
+    # Compress using ffmpeg to WebM (VP9)
     ffmpeg_cmd = [
         "ffmpeg", "-y", "-i", temp_output, 
-        "-c:v", "libx264", "-crf", "32", "-preset", "faster", 
-        "-pix_fmt", "yuv420p", "-movflags", "+faststart", output_path
+        "-c:v", "libvpx-vp9", "-crf", "30", "-b:v", "0", 
+        "-deadline", "realtime", "-cpu-used", "8", "-pix_fmt", "yuv420p", output_path
     ]
     subprocess.run(ffmpeg_cmd, check=True)
     
