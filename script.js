@@ -36,6 +36,48 @@ function sanitizeUrl(url) {
     }
 }
 
+// ─── Render Scheduler (coordinates multiple renderers) ───────────────────────
+
+class RenderScheduler {
+    constructor() {
+        this.renderers = [];
+        this.animId = null;
+    }
+
+    register(renderer) {
+        if (this.renderers.includes(renderer)) return;
+        this.renderers.push(renderer);
+        this._startLoop();
+    }
+
+    unregister(renderer) {
+        const idx = this.renderers.indexOf(renderer);
+        if (idx !== -1) this.renderers.splice(idx, 1);
+        if (this.renderers.length === 0) this._stopLoop();
+    }
+
+    _startLoop() {
+        if (this.animId) return;
+        const tick = (time) => {
+            this.animId = requestAnimationFrame(tick);
+            for (let i = 0; i < this.renderers.length; i++) {
+                const r = this.renderers[i];
+                if (r.isActive()) r.renderFrame(time);
+            }
+        };
+        this.animId = requestAnimationFrame(tick);
+    }
+
+    _stopLoop() {
+        if (this.animId) {
+            cancelAnimationFrame(this.animId);
+            this.animId = null;
+        }
+    }
+}
+
+const renderScheduler = new RenderScheduler();
+
 // ─── ASCII Video Background ───────────────────────────────────────────────────
 
 class AsciiRenderer {
@@ -74,13 +116,24 @@ class AsciiRenderer {
         this.charHeight = this.fontSize;
         this.cols = 0;
         this.rows = 0;
+        // Frame caching — avoid re-rendering identical video frames
+        this.frameCache = null;
+        this.cachedVideoTime = -1;
+        this.cachedAsciiItems = null;
+        this.cachedOffscreenData = null;
+
+        // Character atlas — pre-rendered density chars for GPU-accelerated drawImage
+        this.atlasCanvas = null;
+        this.atlasCharW = 0;
+        this.atlasCharH = 0;
+
         this.isRendering = false;
         this.lastFrameTime = 0;
         this.fpsInterval = 1000 / this.targetFPS;
         this.canvasBounds = this.canvas.getBoundingClientRect();
 
         this.handleResize = this.handleResize.bind(this);
-        this.render = this.render.bind(this);
+        this.renderFrame = this.renderFrame.bind(this);
         this.handleMouseMove = this.handleMouseMove.bind(this);
         this.updateBounds = this.updateBounds.bind(this);
         
@@ -110,7 +163,7 @@ class AsciiRenderer {
                             this.handleResize();
                             if (!this.isRendering) {
                                 this.isRendering = true;
-                                requestAnimationFrame(this.render);
+                                renderScheduler.register(this);
                             }
                         })
                         .catch(err => {
@@ -119,6 +172,7 @@ class AsciiRenderer {
                 } else {
                     this.video.pause();
                     this.isRendering = false;
+                    renderScheduler.unregister(this);
                 }
             });
         }, { threshold: 0.02 });
@@ -142,7 +196,7 @@ class AsciiRenderer {
                         this.handleResize();
                         if (!this.isRendering) {
                             this.isRendering = true;
-                            requestAnimationFrame(this.render);
+                            renderScheduler.register(this);
                         }
                     })
                     .catch(err => {
@@ -188,6 +242,12 @@ class AsciiRenderer {
 
         this.offscreenCanvas.width = this.cols;
         this.offscreenCanvas.height = this.rows;
+
+        // Invalidate atlas + cache on resize (char dimensions may have changed)
+        this.atlasCanvas = null;
+        this.cachedVideoTime = -1;
+        this.cachedAsciiItems = null;
+        this.cachedOffscreenData = null;
     }
 
     handleMouseMove(e) {
@@ -196,10 +256,79 @@ class AsciiRenderer {
         this.targetMouseY = e.clientY - this.canvasBounds.top;
     }
 
-    render(time) {
+    // ─── Frame Cache & Atlas ────────────────────────────────────────────
+
+    getVideoTimeKey() {
+        return Math.round(this.video.currentTime * 10) / 10;
+    }
+
+    buildCharAtlas() {
+        if (this.atlasCanvas) return;
+        const chars = this.density.split('');
+        const charW = Math.ceil(this.charWidth);
+        const charH = Math.ceil(this.charHeight);
+        this.atlasCanvas = document.createElement('canvas');
+        this.atlasCanvas.width = chars.length * charW;
+        this.atlasCanvas.height = charH;
+        const actx = this.atlasCanvas.getContext('2d');
+        actx.fillStyle = '#ffffff';
+        const fontSize = Math.round(this.charHeight);
+        actx.font = `bold ${fontSize}px "JetBrains Mono", monospace`;
+        actx.textAlign = 'left';
+        actx.textBaseline = 'top';
+        chars.forEach((ch, i) => { actx.fillText(ch, i * charW, 0); });
+        this.atlasCharW = charW;
+        this.atlasCharH = charH;
+    }
+
+    drawCachedFrame() {
+        if (!this.cachedAsciiItems) return;
+        const currentFontSize = Math.round(this.charHeight);
+        this.ctx.font = `bold ${currentFontSize}px "JetBrains Mono", monospace`;
+        this.ctx.textAlign = 'left';
+        this.ctx.textBaseline = 'top';
+        this.ctx.fillStyle = '#080808';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.buildCharAtlas();
+
+        if (this.tier === 1) {
+            const items = this.cachedAsciiItems;
+            if (this.atlasCanvas) {
+                for (let i = 0; i < items.length; i++) {
+                    const it = items[i];
+                    this.ctx.drawImage(this.atlasCanvas, it.c * this.atlasCharW, 0, this.atlasCharW, this.atlasCharH, it.x, it.y, this.atlasCharW, this.atlasCharH);
+                }
+            } else {
+                for (let i = 0; i < items.length; i++) {
+                    const it = items[i];
+                    this.ctx.fillText(this.density[it.c], it.x, it.y);
+                }
+            }
+            if (this.cachedOffscreenData) {
+                this.offscreenCtx.putImageData(new ImageData(new Uint8ClampedArray(this.cachedOffscreenData), this.cols, this.rows), 0, 0);
+            }
+            this.ctx.globalCompositeOperation = 'source-in';
+            this.ctx.drawImage(this.offscreenCanvas, 0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.globalCompositeOperation = 'destination-over';
+            this.ctx.fillStyle = '#080808';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.globalCompositeOperation = 'source-over';
+        } else {
+            for (let i = 0; i < this.cachedAsciiItems.length; i++) {
+                const it = this.cachedAsciiItems[i];
+                this.ctx.fillStyle = it.color;
+                this.ctx.fillText(this.density[it.c], it.x, it.y);
+            }
+        }
+    }
+
+    isActive() {
+        return this.isRendering && this.video && !this.video.paused && !this.video.ended;
+    }
+
+    renderFrame(time) {
         if (!this.isRendering) return;
 
-        // Smooth mouse interpolation
         this.mouseX += (this.targetMouseX - this.mouseX) * 0.15;
         this.mouseY += (this.targetMouseY - this.mouseY) * 0.15;
 
@@ -208,13 +337,17 @@ class AsciiRenderer {
             return;
         }
 
-        requestAnimationFrame(this.render);
-
         const elapsed = time - this.lastFrameTime;
         if (elapsed < this.fpsInterval) return;
         this.lastFrameTime = time - (elapsed % this.fpsInterval);
 
-        // Gate mouse physics: only calculate repulsion if mouse is near canvas
+        // ── Frame cache: skip full render when video time hasn't changed ──
+        const timeKey = this.getVideoTimeKey();
+        if (timeKey === this.cachedVideoTime && this.cachedAsciiItems) {
+            this.drawCachedFrame();
+            return;
+        }
+
         const isMouseClose = this.mouseX > -500 && this.mouseY > -500;
 
         // 1. Draw video downscaled to offscreen canvas
@@ -234,11 +367,14 @@ class AsciiRenderer {
         this.ctx.textAlign = 'left';
         this.ctx.textBaseline = 'top';
 
-        // 4. Render ASCII
+        // 4. Build character atlas once (lazy, uses same font as ctx)
+        this.buildCharAtlas();
+
+        // 5. Render ASCII
         const densityMaxIdx = this.density.length - 2;
+        const items = [];
 
         if (this.tier === 1) {
-            // OPTIMIZATION FOR LOW-END DEVICES: 
             this.ctx.fillStyle = '#ffffff';
             let idx = 0;
             for (let y = 0; y < this.rows; y++) {
@@ -250,35 +386,41 @@ class AsciiRenderer {
 
                     if (a === 0) continue;
                     const avg = (r + g + b) / 3;
-                    if (avg < 25) continue; 
+                    if (avg < 25) continue;
 
                     const charIdx = Math.floor(((avg - 25) / 230) * densityMaxIdx);
                     const mappedCharIdx = densityMaxIdx - Math.min(Math.max(charIdx, 0), densityMaxIdx);
-                    const char = this.density[mappedCharIdx];
 
                     let drawX = x * this.charWidth;
                     let drawY = y * this.charHeight;
 
-                    // Mouse Interaction Physics (Repulsion) - gated
                     if (isMouseClose) {
                         const dx = drawX - this.mouseX;
                         const dy = drawY - this.mouseY;
                         const distSq = dx * dx + dy * dy;
-                        const radius = 150;
-                        
-                        if (distSq < radius * radius && distSq > 0) {
+                        if (distSq < 22500 && distSq > 0) {
                             const dist = Math.sqrt(distSq);
-                            const force = (radius - dist) / radius;
-                            drawX += (dx / dist) * force * 30; // Push strength
+                            const force = (150 - dist) / 150;
+                            drawX += (dx / dist) * force * 30;
                             drawY += (dy / dist) * force * 30;
                         }
                     }
 
-                    this.ctx.fillText(char, drawX, drawY);
+                    if (this.atlasCanvas) {
+                        this.ctx.drawImage(
+                            this.atlasCanvas,
+                            mappedCharIdx * this.atlasCharW, 0,
+                            this.atlasCharW, this.atlasCharH,
+                            drawX, drawY,
+                            this.atlasCharW, this.atlasCharH
+                        );
+                    } else {
+                        this.ctx.fillText(this.density[mappedCharIdx], drawX, drawY);
+                    }
+                    items.push({ c: mappedCharIdx, x: drawX, y: drawY });
                 }
             }
 
-            // Apply color via GPU compositing
             this.ctx.globalCompositeOperation = 'source-in';
             this.ctx.drawImage(this.offscreenCanvas, 0, 0, this.canvas.width, this.canvas.height);
             this.ctx.globalCompositeOperation = 'destination-over';
@@ -287,7 +429,6 @@ class AsciiRenderer {
             this.ctx.globalCompositeOperation = 'source-over';
 
         } else {
-            // HIGH-END/MID-RANGE: Exact pixel color mapping
             let idx = 0;
             for (let y = 0; y < this.rows; y++) {
                 for (let x = 0; x < this.cols; x++) {
@@ -297,88 +438,128 @@ class AsciiRenderer {
                     const a = data[idx++];
 
                     if (a === 0) continue;
-
                     const avg = (r + g + b) / 3;
-                    if (avg < 25) continue; 
+                    if (avg < 25) continue;
 
                     const charIdx = Math.floor(((avg - 25) / 230) * densityMaxIdx);
                     const mappedCharIdx = densityMaxIdx - Math.min(Math.max(charIdx, 0), densityMaxIdx);
-                    const char = this.density[mappedCharIdx];
 
                     let drawX = x * this.charWidth;
                     let drawY = y * this.charHeight;
 
-                    // Mouse Interaction Physics - gated
                     if (isMouseClose) {
                         const dx = drawX - this.mouseX;
                         const dy = drawY - this.mouseY;
                         const distSq = dx * dx + dy * dy;
-                        const radius = 150;
-                        
-                        if (distSq < radius * radius && distSq > 0) {
+                        if (distSq < 22500 && distSq > 0) {
                             const dist = Math.sqrt(distSq);
-                            const force = (radius - dist) / radius;
+                            const force = (150 - dist) / 150;
                             drawX += (dx / dist) * force * 30;
                             drawY += (dy / dist) * force * 30;
                         }
                     }
 
                     this.ctx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
-                    this.ctx.fillText(char, drawX, drawY);
+                    this.ctx.fillText(this.density[mappedCharIdx], drawX, drawY);
+                    items.push({ c: mappedCharIdx, x: drawX, y: drawY, color: `rgba(${r},${g},${b},${a/255})` });
                 }
             }
         }
+
+        // Cache frame data for next call
+        this.cachedVideoTime = timeKey;
+        this.cachedAsciiItems = items;
+        this.cachedOffscreenData = new Uint8ClampedArray(imageData.data);
     }
 }
 
-// Determine hardware tier once
+// ─── Tier Detection ──────────────────────────────────────────────────────────
+
+// Static detection for immediate CSS class
 const cores = navigator.hardwareConcurrency || 4;
 const memory = navigator.deviceMemory || 4;
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
 
 let hardwareTier = 1;
 if (cores >= 8 && memory >= 6) {
-    hardwareTier = isMobile ? 2 : 3; // High-end mobiles get Tier 2, PCs get Tier 3
+    hardwareTier = isMobile ? 2 : 3;
 } else if (cores >= 4 && memory >= 4) {
-    hardwareTier = 2; // Mid-range
+    hardwareTier = 2;
 } else {
-    hardwareTier = 1; // Low-end
+    hardwareTier = 1;
 }
 
-// Add hardware tier class to root element for CSS targeting
 document.documentElement.classList.add(`tier-${hardwareTier}`);
 
-// Initialize ASCII video backgrounds after page load to prevent blocking FCP/LCP
+// Async runtime benchmark for refined tier detection
+async function detectHardwareTier() {
+    const signals = {
+        cores: navigator.hardwareConcurrency || 4,
+        memory: navigator.deviceMemory || 4,
+        isMobile: /Mobi|Android/i.test(navigator.userAgent)
+    };
+
+    const bc = document.createElement('canvas');
+    bc.width = 200; bc.height = 100;
+    const bctx = bc.getContext('2d');
+    bctx.font = 'bold 18px "JetBrains Mono", monospace';
+
+    const start = performance.now();
+    for (let i = 0; i < 150; i++) {
+        bctx.fillStyle = '#ffffff';
+        bctx.fillRect(0, 0, 200, 100);
+        for (let c = 0; c < 40; c++) {
+            bctx.fillText('@W$9876', c * 10, (i % 10) * 10);
+        }
+    }
+    const elapsed = performance.now() - start;
+
+    let score = 0;
+    score += Math.min(signals.cores / 8, 1) * 25;
+    score += Math.min(signals.memory / 8, 1) * 25;
+    score += elapsed < 25 ? 50 : elapsed < 60 ? 35 : elapsed < 120 ? 20 : 10;
+    if (signals.isMobile) score *= 0.7;
+
+    if (score >= 70) return 3;
+    if (score >= 40) return 2;
+    return 1;
+}
+
+// Initialize ASCII video backgrounds after page load
 window.addEventListener('load', () => {
-    setTimeout(() => {
-        new AsciiRenderer('hidden-video', 'ascii-canvas', 'home', hardwareTier, {
-            fontSize3: 5,     // Ultra dense for high-end PCs
-            fps3: 30,         // Smooth 30 FPS
-            speed3: 1.0,
-            fontSize2: 10,    // Increased density for mid-range and mobile
-            fps2: 24,         // 24 FPS 
+    setTimeout(async () => {
+        const refined = await detectHardwareTier();
+        hardwareTier = refined;
+        document.documentElement.classList.remove('tier-1', 'tier-2', 'tier-3');
+        document.documentElement.classList.add(`tier-${refined}`);
+
+        new AsciiRenderer('hidden-video', 'ascii-canvas', 'home', refined, {
+            fontSize3: 5,
+            fps3: 60,
+            speed3: 1.2,
+            fontSize2: 10,
+            fps2: 30,
             speed2: 1.0,
-            fontSize1: 18,    // Lower resolution for low-end devices
-            fps1: 15,         // 15 FPS to conserve CPU
+            fontSize1: 16,
+            fps1: 24,
             speed1: 0.8
         });
 
-        // Stagger the second renderer to avoid main thread freezing
         setTimeout(() => {
-            new AsciiRenderer('video-editing-bg-video', 'video-editing-canvas', 'videos', hardwareTier, {
+            new AsciiRenderer('video-editing-bg-video', 'video-editing-canvas', 'videos', refined, {
                 fontSize3: 5,
-                fps3: 30,
-                speed3: 1.0,
+                fps3: 60,
+                speed3: 1.2,
                 fontSize2: 10,
-                fps2: 24,
+                fps2: 30,
                 speed2: 1.0,
-                fontSize1: 18,
-                fps1: 15,
+                fontSize1: 16,
+                fps1: 24,
                 speed1: 0.8,
                 filter: 'contrast(1.6) saturate(1.8) brightness(1.2)'
             });
         }, 500);
-    }, 200); // Wait 200ms after load
+    }, 200);
 });
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
