@@ -713,3 +713,562 @@ themeToggle.addEventListener('click', () => {
 window.addEventListener('DOMContentLoaded', () => {
     // Tilt effect initialized via add3DTiltEffect()
 });
+
+class RenderScheduler {
+    constructor() {
+        this.renderers = [];
+        this.animId = null;
+    }
+
+    register(renderer) {
+        if (this.renderers.includes(renderer)) return;
+        this.renderers.push(renderer);
+        this._startLoop();
+    }
+
+    unregister(renderer) {
+        const idx = this.renderers.indexOf(renderer);
+        if (idx !== -1) this.renderers.splice(idx, 1);
+        if (this.renderers.length === 0) this._stopLoop();
+    }
+
+    _startLoop() {
+        if (this.animId) return;
+        const tick = (time) => {
+            this.animId = requestAnimationFrame(tick);
+            for (let i = 0; i < this.renderers.length; i++) {
+                const r = this.renderers[i];
+                if (r.isActive()) r.renderFrame(time);
+            }
+        };
+        this.animId = requestAnimationFrame(tick);
+    }
+
+    _stopLoop() {
+        if (this.animId) {
+            cancelAnimationFrame(this.animId);
+            this.animId = null;
+        }
+    }
+}
+
+const renderScheduler = new RenderScheduler();
+
+// ─── ASCII Video Background ───────────────────────────────────────────────────
+
+class AsciiRenderer {
+    constructor(videoId, canvasId, sectionId, tier, options = {}) {
+        this.video = document.getElementById(videoId);
+        this.canvas = document.getElementById(canvasId);
+        this.section = document.getElementById(sectionId);
+        
+        if (!this.video || !this.canvas || !this.section) return;
+
+        this.ctx = this.canvas.getContext('2d', { alpha: false });
+        this.offscreenCanvas = document.createElement('canvas');
+        this.offscreenCtx = this.offscreenCanvas.getContext('2d', { willReadFrequently: true });
+        
+        // Density string from dark to light
+        this.density = options.density || "Ñ@#W$9876543210?!abc;:+=-,._ ";
+        this.tier = tier;
+        this.filter = options.filter || 'none';
+        
+        // Settings based on device tiers
+        if (this.tier === 3) {
+            this.fontSize = options.fontSize3 || 6;       // Ultra dense
+            this.targetFPS = options.fps3 || 60;          // Smooth 60 FPS
+            this.video.playbackRate = options.speed3 || 1.2;
+        } else if (this.tier === 2) {
+            this.fontSize = options.fontSize2 || 12;      // Balanced
+            this.targetFPS = options.fps2 || 24;          // 24 FPS
+            this.video.playbackRate = options.speed2 || 1.0;
+        } else {
+            this.fontSize = options.fontSize1 || 18;      // Low-res
+            this.targetFPS = options.fps1 || 12;          // 12 FPS for better performance
+            this.video.playbackRate = options.speed1 || 0.8;
+        }
+
+        this.charWidth = this.fontSize * 0.6;
+        this.charHeight = this.fontSize;
+        this.cols = 0;
+        this.rows = 0;
+        // Frame caching — avoid re-rendering identical video frames
+        this.frameCache = null;
+        this.cachedVideoTime = -1;
+        this.cachedAsciiItems = null;
+        this.cachedOffscreenData = null;
+
+        // Character atlas — pre-rendered density chars for GPU-accelerated drawImage
+        this.atlasCanvas = null;
+        this.atlasCharW = 0;
+        this.atlasCharH = 0;
+
+        this.isRendering = false;
+        this.lastFrameTime = 0;
+        this.fpsInterval = 1000 / this.targetFPS;
+        this.canvasBounds = this.canvas.getBoundingClientRect();
+
+        this.handleResize = this.handleResize.bind(this);
+        this.renderFrame = this.renderFrame.bind(this);
+        this.handleMouseMove = this.handleMouseMove.bind(this);
+        this.updateBounds = this.updateBounds.bind(this);
+        
+        window.addEventListener('resize', this.handleResize);
+        window.addEventListener('scroll', this.updateBounds, { passive: true });
+        if (window.ResizeObserver) {
+            this.resizeObserver = new ResizeObserver(() => this.handleResize());
+            if (this.canvas) this.resizeObserver.observe(this.canvas);
+        }
+
+        if (this.canvas) {
+            window.addEventListener('mousemove', this.handleMouseMove);
+            this.canvas.addEventListener('mouseleave', () => { this.mouseX = -1000; this.mouseY = -1000; });
+        }
+
+        this.mouseX = -1000;
+        this.mouseY = -1000;
+        this.targetMouseX = -1000;
+        this.targetMouseY = -1000;
+        
+        // Observe section visibility to play/pause video dynamically
+        this.observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    this.video.play()
+                        .then(() => {
+                            this.handleResize();
+                            if (!this.isRendering) {
+                                this.isRendering = true;
+                                renderScheduler.register(this);
+                            }
+                        })
+                        .catch(err => {
+                            // Silently ignore autoplay rejections to prevent console errors
+                        });
+                } else {
+                    this.video.pause();
+                    this.isRendering = false;
+                    renderScheduler.unregister(this);
+                }
+            });
+        }, { threshold: 0.02 });
+        
+        if (document.readyState === 'complete') {
+            this.observer.observe(this.section);
+        } else {
+            window.addEventListener('load', () => {
+                this.handleResize();
+                this.observer.observe(this.section);
+            });
+        }
+
+        // Interaction fallback for autoplay policies
+        const handleInteraction = () => {
+            const rect = this.section.getBoundingClientRect();
+            const inView = rect.bottom > 0 && rect.top < window.innerHeight;
+            if (inView && this.video.paused) {
+                this.video.play()
+                    .then(() => {
+                        this.handleResize();
+                        if (!this.isRendering) {
+                            this.isRendering = true;
+                            renderScheduler.register(this);
+                        }
+                    })
+                    .catch(err => {
+                        // Silently ignore autoplay rejections to prevent console errors
+                    });
+            }
+            document.removeEventListener('click', handleInteraction);
+            document.removeEventListener('touchstart', handleInteraction);
+        };
+        document.addEventListener('click', handleInteraction);
+        document.addEventListener('touchstart', handleInteraction);
+    }
+
+    updateBounds() {
+        if (!this.canvas) return;
+        this.canvasBounds = this.canvas.getBoundingClientRect();
+    }
+
+    handleResize() {
+        const width = this.canvas.offsetWidth;
+        const height = this.canvas.offsetHeight;
+        if (!width || !height) return;
+
+        this.updateBounds();
+
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = width * dpr;
+        this.canvas.height = height * dpr;
+
+        let scaleFactor = 1;
+        if (width < 768) {
+            scaleFactor = 1.2; // slightly larger characters on mobile, but keep ratio
+        }
+
+        let currentFontSize = Math.max(4, Math.round(this.fontSize * scaleFactor));
+        let charWidth = Math.max(1, currentFontSize * 0.6);
+        let charHeight = currentFontSize;
+        let cols = Math.floor(width / charWidth);
+        let rows = Math.floor(height / charHeight);
+
+        // Bound the per-frame workload: on large screens a tiny font explodes the
+        // grid (e.g. 5px font → 600+ cols × 200+ rows = 130k+ cells/frame), which
+        // makes even high-end devices drop below 24fps. Scale the font up just
+        // enough to keep total cells within budget so every device can sustain
+        // its target framerate.
+        const MAX_CELLS = 8000;
+        if (cols * rows > MAX_CELLS) {
+            const grow = Math.sqrt((cols * rows) / MAX_CELLS);
+            currentFontSize = Math.max(currentFontSize, Math.ceil(currentFontSize * grow));
+            charWidth = Math.max(1, currentFontSize * 0.6);
+            charHeight = currentFontSize;
+            cols = Math.floor(width / charWidth);
+            rows = Math.floor(height / charHeight);
+        }
+
+        this.charWidth = charWidth;
+        this.charHeight = charHeight;
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        this.cols = cols;
+        this.rows = rows;
+
+        this.offscreenCanvas.width = this.cols;
+        this.offscreenCanvas.height = this.rows;
+
+        // Invalidate atlas + cache on resize (char dimensions may have changed)
+        this.atlasCanvas = null;
+        this.cachedVideoTime = -1;
+        this.cachedAsciiItems = null;
+        this.cachedOffscreenData = null;
+    }
+
+    handleMouseMove(e) {
+        if (!this.isRendering) return;
+        this.targetMouseX = e.clientX - this.canvasBounds.left;
+        this.targetMouseY = e.clientY - this.canvasBounds.top;
+    }
+
+    // ─── Frame Cache & Atlas ────────────────────────────────────────────
+
+    getVideoTimeKey() {
+        return Math.round(this.video.currentTime * 10) / 10;
+    }
+
+    buildCharAtlas() {
+        if (this.atlasCanvas) return;
+        const chars = this.density.split('');
+        const charW = Math.ceil(this.charWidth);
+        const charH = Math.ceil(this.charHeight);
+        this.atlasCanvas = document.createElement('canvas');
+        this.atlasCanvas.width = chars.length * charW;
+        this.atlasCanvas.height = charH;
+        const actx = this.atlasCanvas.getContext('2d');
+        actx.fillStyle = '#ffffff';
+        const fontSize = Math.round(this.charHeight);
+        actx.font = `bold ${fontSize}px "JetBrains Mono", monospace`;
+        actx.textAlign = 'left';
+        actx.textBaseline = 'top';
+        chars.forEach((ch, i) => { actx.fillText(ch, i * charW, 0); });
+        this.atlasCharW = charW;
+        this.atlasCharH = charH;
+    }
+
+    drawCachedFrame() {
+        if (!this.cachedAsciiItems) return;
+        const currentFontSize = Math.round(this.charHeight);
+        this.ctx.font = `bold ${currentFontSize}px "JetBrains Mono", monospace`;
+        this.ctx.textAlign = 'left';
+        this.ctx.textBaseline = 'top';
+        if (this.tier === 1) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        } else {
+            this.ctx.fillStyle = '#080808';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+        this.buildCharAtlas();
+
+        if (this.tier === 1) {
+            const items = this.cachedAsciiItems;
+            if (this.atlasCanvas) {
+                for (let i = 0; i < items.length; i++) {
+                    const it = items[i];
+                    this.ctx.drawImage(this.atlasCanvas, it.c * this.atlasCharW, 0, this.atlasCharW, this.atlasCharH, it.x, it.y, this.atlasCharW, this.atlasCharH);
+                }
+            } else {
+                for (let i = 0; i < items.length; i++) {
+                    const it = items[i];
+                    this.ctx.fillText(this.density[it.c], it.x, it.y);
+                }
+            }
+            if (this.cachedOffscreenData) {
+                this.offscreenCtx.putImageData(new ImageData(new Uint8ClampedArray(this.cachedOffscreenData), this.cols, this.rows), 0, 0);
+            }
+            this.ctx.globalCompositeOperation = 'source-in';
+            this.ctx.drawImage(this.offscreenCanvas, 0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.globalCompositeOperation = 'destination-over';
+            this.ctx.fillStyle = '#080808';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.globalCompositeOperation = 'source-over';
+        } else {
+            for (let i = 0; i < this.cachedAsciiItems.length; i++) {
+                const it = this.cachedAsciiItems[i];
+                this.ctx.fillStyle = it.color;
+                this.ctx.fillText(this.density[it.c], it.x, it.y);
+            }
+        }
+    }
+
+    isActive() {
+        return this.isRendering && this.video && !this.video.paused && !this.video.ended;
+    }
+
+    renderFrame(time) {
+        if (!this.isRendering) return;
+
+        this.mouseX += (this.targetMouseX - this.mouseX) * 0.15;
+        this.mouseY += (this.targetMouseY - this.mouseY) * 0.15;
+
+        if (this.video.paused || this.video.ended) {
+            this.isRendering = false;
+            return;
+        }
+
+        const elapsed = time - this.lastFrameTime;
+        if (elapsed < this.fpsInterval) return;
+        this.lastFrameTime = time - (elapsed % this.fpsInterval);
+
+        // ── Frame cache: skip full render when video time hasn't changed ──
+        const timeKey = this.getVideoTimeKey();
+        if (timeKey === this.cachedVideoTime && this.cachedAsciiItems) {
+            this.drawCachedFrame();
+            return;
+        }
+
+        const isMouseClose = this.mouseX > -500 && this.mouseY > -500;
+
+        if (this.video.readyState < 2) return; // Prevent InvalidStateError crash
+
+        // 1. Draw video downscaled to offscreen canvas
+        if (this.filter !== 'none') this.offscreenCtx.filter = this.filter;
+        this.offscreenCtx.drawImage(this.video, 0, 0, this.cols, this.rows);
+        if (this.filter !== 'none') this.offscreenCtx.filter = 'none';
+        const imageData = this.offscreenCtx.getImageData(0, 0, this.cols, this.rows);
+        const data = imageData.data;
+
+        // 2. Clear canvas appropriately
+        if (this.tier === 1) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        } else {
+            this.ctx.fillStyle = '#080808';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+
+        // 3. Prepare text rendering state
+        const currentFontSize = Math.round(this.charHeight);
+        this.ctx.font = `bold ${currentFontSize}px "JetBrains Mono", monospace`;
+        this.ctx.textAlign = 'left';
+        this.ctx.textBaseline = 'top';
+
+        // 4. Build character atlas once (lazy, uses same font as ctx)
+        this.buildCharAtlas();
+
+        // 5. Render ASCII
+        const densityMaxIdx = this.density.length - 2;
+        const items = [];
+
+        if (this.tier === 1) {
+            this.ctx.fillStyle = '#ffffff';
+            let idx = 0;
+            for (let y = 0; y < this.rows; y++) {
+                for (let x = 0; x < this.cols; x++) {
+                    const r = data[idx++];
+                    const g = data[idx++];
+                    const b = data[idx++];
+                    const a = data[idx++];
+
+                    if (a === 0) continue;
+                    const avg = (r + g + b) / 3;
+                    if (avg < 25) continue;
+
+                    const charIdx = Math.floor(((avg - 25) / 230) * densityMaxIdx);
+                    const mappedCharIdx = densityMaxIdx - Math.min(Math.max(charIdx, 0), densityMaxIdx);
+
+                    let drawX = x * this.charWidth;
+                    let drawY = y * this.charHeight;
+
+                    if (isMouseClose) {
+                        const dx = drawX - this.mouseX;
+                        const dy = drawY - this.mouseY;
+                        const distSq = dx * dx + dy * dy;
+                        if (distSq < 22500 && distSq > 0) {
+                            const dist = Math.sqrt(distSq);
+                            const force = (150 - dist) / 150;
+                            drawX += (dx / dist) * force * 30;
+                            drawY += (dy / dist) * force * 30;
+                        }
+                    }
+
+                    if (this.atlasCanvas) {
+                        this.ctx.drawImage(
+                            this.atlasCanvas,
+                            mappedCharIdx * this.atlasCharW, 0,
+                            this.atlasCharW, this.atlasCharH,
+                            drawX, drawY,
+                            this.atlasCharW, this.atlasCharH
+                        );
+                    } else {
+                        this.ctx.fillText(this.density[mappedCharIdx], drawX, drawY);
+                    }
+                    items.push({ c: mappedCharIdx, x: drawX, y: drawY });
+                }
+            }
+
+            this.ctx.globalCompositeOperation = 'source-in';
+            this.ctx.drawImage(this.offscreenCanvas, 0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.globalCompositeOperation = 'destination-over';
+            this.ctx.fillStyle = '#080808';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.globalCompositeOperation = 'source-over';
+
+        } else {
+            let idx = 0;
+            for (let y = 0; y < this.rows; y++) {
+                for (let x = 0; x < this.cols; x++) {
+                    const r = data[idx++];
+                    const g = data[idx++];
+                    const b = data[idx++];
+                    const a = data[idx++];
+
+                    if (a === 0) continue;
+                    const avg = (r + g + b) / 3;
+                    if (avg < 25) continue;
+
+                    const charIdx = Math.floor(((avg - 25) / 230) * densityMaxIdx);
+                    const mappedCharIdx = densityMaxIdx - Math.min(Math.max(charIdx, 0), densityMaxIdx);
+
+                    let drawX = x * this.charWidth;
+                    let drawY = y * this.charHeight;
+
+                    if (isMouseClose) {
+                        const dx = drawX - this.mouseX;
+                        const dy = drawY - this.mouseY;
+                        const distSq = dx * dx + dy * dy;
+                        if (distSq < 22500 && distSq > 0) {
+                            const dist = Math.sqrt(distSq);
+                            const force = (150 - dist) / 150;
+                            drawX += (dx / dist) * force * 30;
+                            drawY += (dy / dist) * force * 30;
+                        }
+                    }
+
+                    this.ctx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
+                    this.ctx.fillText(this.density[mappedCharIdx], drawX, drawY);
+                    items.push({ c: mappedCharIdx, x: drawX, y: drawY, color: `rgba(${r},${g},${b},${a/255})` });
+                }
+            }
+        }
+
+        // Cache frame data for next call
+        this.cachedVideoTime = timeKey;
+        this.cachedAsciiItems = items;
+        this.cachedOffscreenData = new Uint8ClampedArray(imageData.data);
+    }
+}
+
+// ─── Tier Detection ──────────────────────────────────────────────────────────
+
+// Static detection for immediate CSS class
+const cores = navigator.hardwareConcurrency || 4;
+const memory = navigator.deviceMemory || 4;
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+
+let hardwareTier = 1;
+if (cores >= 8 && memory >= 6) {
+    hardwareTier = 3;
+} else if (cores >= 4 && memory >= 4) {
+    hardwareTier = 2;
+} else {
+    hardwareTier = 1;
+}
+
+document.documentElement.classList.add(`tier-${hardwareTier}`);
+
+// Async runtime benchmark for refined tier detection
+async function detectHardwareTier() {
+    const signals = {
+        cores: navigator.hardwareConcurrency || 4,
+        memory: navigator.deviceMemory || 4,
+        isMobile: /Mobi|Android/i.test(navigator.userAgent)
+    };
+
+    const bc = document.createElement('canvas');
+    bc.width = 200; bc.height = 100;
+    const bctx = bc.getContext('2d');
+    bctx.font = 'bold 18px "JetBrains Mono", monospace';
+
+    const start = performance.now();
+    for (let i = 0; i < 150; i++) {
+        bctx.fillStyle = '#ffffff';
+        bctx.fillRect(0, 0, 200, 100);
+        for (let c = 0; c < 40; c++) {
+            bctx.fillText('@W$9876', c * 10, (i % 10) * 10);
+        }
+    }
+    const elapsed = performance.now() - start;
+
+    let score = 0;
+    score += Math.min(signals.cores / 8, 1) * 25;
+    score += Math.min(signals.memory / 8, 1) * 25;
+    score += elapsed < 25 ? 50 : elapsed < 60 ? 35 : elapsed < 120 ? 20 : 10;
+
+    if (score >= 70) return 3;
+    if (score >= 40) return 2;
+    return 1;
+}
+
+// Respect users who request reduced motion: skip autoplaying video backgrounds,
+// typing, 3D tilt, and parallax. Static fallbacks remain (gradient overlays, text).
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Initialize ASCII video backgrounds after page load
+window.addEventListener('load', () => {
+    if (prefersReducedMotion) return;
+    setTimeout(async () => {
+        const refined = await detectHardwareTier();
+        hardwareTier = refined;
+        document.documentElement.classList.remove('tier-1', 'tier-2', 'tier-3');
+        document.documentElement.classList.add(`tier-${refined}`);
+
+        new AsciiRenderer('bg-video-source', 'ascii-video', 'home', refined, {
+            fontSize3: 5,
+            fps3: 30,
+            speed3: 1.2,
+            fontSize2: 10,
+            fps2: 30,
+            speed2: 1.0,
+            fontSize1: 16,
+            fps1: 30,
+            speed1: 1.0
+        });
+
+        setTimeout(() => {
+            new AsciiRenderer('video-editing-source', 'video-editing-ascii', 'videos', refined, {
+                fontSize3: 5,
+                fps3: 30,
+                speed3: 1.2,
+                fontSize2: 10,
+                fps2: 30,
+                speed2: 1.0,
+                fontSize1: 16,
+                fps1: 30,
+                speed1: 1.0,
+                filter: 'contrast(1.6) saturate(1.8) brightness(1.2)'
+            });
+        }, 500);
+    }, 200);
+});
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+

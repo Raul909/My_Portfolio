@@ -27,3 +27,7 @@ DEPLOYMENT.md
 UPDATES.md
 implementation_plan.md
 preview.sh
+.venv/
+old_script.js
+jbmono.zip
+lh-audit.json
