@@ -11,6 +11,17 @@
 
 // ─── Security Helpers ─────────────────────────────────────────────────────────
 
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Fallback: forcefully remove preloader after 3 seconds in case window.onload hangs
+setTimeout(() => {
+    const preloader = document.getElementById('preloader');
+    if (preloader) {
+        preloader.classList.add('fade-out');
+        setTimeout(() => preloader.remove(), 500);
+    }
+}, 3000);
+
 /**
  * Escapes HTML characters to prevent XSS.
  */
@@ -1202,7 +1213,6 @@ async function detectHardwareTier() {
 
 // Respect users who request reduced motion: skip autoplaying video backgrounds,
 // typing, 3D tilt, and parallax. Static fallbacks remain (gradient overlays, text).
-const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Initialize ASCII video backgrounds after page load
 window.addEventListener('load', () => {
