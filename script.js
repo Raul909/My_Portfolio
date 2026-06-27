@@ -1,3 +1,14 @@
+// ─── Async Font Loading ───────────────────────────────────────────────────────
+// Inject the Google Fonts stylesheet after first paint so it stays off the
+// critical render path (CSP forbids inline onload handlers, so do it via JS).
+// The <link rel="preload"> in <head> already warms the fetch; this applies it.
+(function () {
+    const l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Rock+Salt&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap';
+    document.head.appendChild(l);
+})();
+
 // ─── Security Helpers ─────────────────────────────────────────────────────────
 
 /**
