@@ -854,10 +854,10 @@ async function fetchGitHubRepos() {
                 liveUrl = sanitizeUrl(liveUrl);
             }
 
-            // Preview: use screenshot for repos with a live URL, else GitHub OG image
+            // Preview: use screenshot for repos with a live URL, else GitHub repo name as fallback
             const previewSrc = liveUrl
-                ? `https://image.thum.io/get/width/600/crop/400/noanimate/${liveUrl}`
-                : `https://opengraph.githubassets.com/1/${repo.full_name}`;
+                ? `https://image.thum.io/get/width/600/crop/400/noanimate/${encodeURIComponent(liveUrl)}`
+                : null;
 
             const safePreviewSrc = sanitizeUrl(previewSrc);
             const safeRepoName = escapeHTML(repo.name);
