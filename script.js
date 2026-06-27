@@ -709,10 +709,7 @@ themeToggle.addEventListener('click', () => {
     localStorage.setItem('theme', theme);
 });
 
-// Initialize Custom UX
-window.addEventListener('DOMContentLoaded', () => {
-    // Tilt effect initialized via add3DTiltEffect()
-});
+
 
 class RenderScheduler {
     constructor() {
@@ -1080,37 +1077,42 @@ class AsciiRenderer {
 
         if (this.tier === 1) {
             this.ctx.fillStyle = '#ffffff';
-            let idx = 0;
-            for (let y = 0; y < this.rows; y++) {
-                for (let x = 0; x < this.cols; x++) {
-                    const r = data[idx++];
-                    const g = data[idx++];
-                    const b = data[idx++];
-                    const a = data[idx++];
+        }
 
-                    if (a === 0) continue;
-                    const avg = (r + g + b) / 3;
-                    if (avg < 25) continue;
+        let idx = 0;
+        const useAtlas = this.tier === 1 && this.atlasCanvas;
 
-                    const charIdx = Math.floor(((avg - 25) / 230) * densityMaxIdx);
-                    const mappedCharIdx = densityMaxIdx - Math.min(Math.max(charIdx, 0), densityMaxIdx);
+        for (let y = 0; y < this.rows; y++) {
+            for (let x = 0; x < this.cols; x++) {
+                const r = data[idx++];
+                const g = data[idx++];
+                const b = data[idx++];
+                const a = data[idx++];
 
-                    let drawX = x * this.charWidth;
-                    let drawY = y * this.charHeight;
+                if (a === 0) continue;
+                const avg = (r + g + b) / 3;
+                if (avg < 25) continue;
 
-                    if (isMouseClose) {
-                        const dx = drawX - this.mouseX;
-                        const dy = drawY - this.mouseY;
-                        const distSq = dx * dx + dy * dy;
-                        if (distSq < 22500 && distSq > 0) {
-                            const dist = Math.sqrt(distSq);
-                            const force = (150 - dist) / 150;
-                            drawX += (dx / dist) * force * 30;
-                            drawY += (dy / dist) * force * 30;
-                        }
+                const charIdx = Math.floor(((avg - 25) / 230) * densityMaxIdx);
+                const mappedCharIdx = densityMaxIdx - Math.min(Math.max(charIdx, 0), densityMaxIdx);
+
+                let drawX = x * this.charWidth;
+                let drawY = y * this.charHeight;
+
+                if (isMouseClose) {
+                    const dx = drawX - this.mouseX;
+                    const dy = drawY - this.mouseY;
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq < 22500 && distSq > 0) {
+                        const dist = Math.sqrt(distSq);
+                        const force = (150 - dist) / 150;
+                        drawX += (dx / dist) * force * 30;
+                        drawY += (dy / dist) * force * 30;
                     }
+                }
 
-                    if (this.atlasCanvas) {
+                if (this.tier === 1) {
+                    if (useAtlas) {
                         this.ctx.drawImage(
                             this.atlasCanvas,
                             mappedCharIdx * this.atlasCharW, 0,
@@ -1122,52 +1124,22 @@ class AsciiRenderer {
                         this.ctx.fillText(this.density[mappedCharIdx], drawX, drawY);
                     }
                     items.push({ c: mappedCharIdx, x: drawX, y: drawY });
+                } else {
+                    const color = `rgba(${r},${g},${b},${a/255})`;
+                    this.ctx.fillStyle = color;
+                    this.ctx.fillText(this.density[mappedCharIdx], drawX, drawY);
+                    items.push({ c: mappedCharIdx, x: drawX, y: drawY, color });
                 }
             }
+        }
 
+        if (this.tier === 1) {
             this.ctx.globalCompositeOperation = 'source-in';
             this.ctx.drawImage(this.offscreenCanvas, 0, 0, this.canvas.width, this.canvas.height);
             this.ctx.globalCompositeOperation = 'destination-over';
             this.ctx.fillStyle = '#080808';
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
             this.ctx.globalCompositeOperation = 'source-over';
-
-        } else {
-            let idx = 0;
-            for (let y = 0; y < this.rows; y++) {
-                for (let x = 0; x < this.cols; x++) {
-                    const r = data[idx++];
-                    const g = data[idx++];
-                    const b = data[idx++];
-                    const a = data[idx++];
-
-                    if (a === 0) continue;
-                    const avg = (r + g + b) / 3;
-                    if (avg < 25) continue;
-
-                    const charIdx = Math.floor(((avg - 25) / 230) * densityMaxIdx);
-                    const mappedCharIdx = densityMaxIdx - Math.min(Math.max(charIdx, 0), densityMaxIdx);
-
-                    let drawX = x * this.charWidth;
-                    let drawY = y * this.charHeight;
-
-                    if (isMouseClose) {
-                        const dx = drawX - this.mouseX;
-                        const dy = drawY - this.mouseY;
-                        const distSq = dx * dx + dy * dy;
-                        if (distSq < 22500 && distSq > 0) {
-                            const dist = Math.sqrt(distSq);
-                            const force = (150 - dist) / 150;
-                            drawX += (dx / dist) * force * 30;
-                            drawY += (dy / dist) * force * 30;
-                        }
-                    }
-
-                    this.ctx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
-                    this.ctx.fillText(this.density[mappedCharIdx], drawX, drawY);
-                    items.push({ c: mappedCharIdx, x: drawX, y: drawY, color: `rgba(${r},${g},${b},${a/255})` });
-                }
-            }
         }
 
         // Cache frame data for next call
@@ -1275,6 +1247,3 @@ window.addEventListener('load', () => {
         }, 500);
     }, 200);
 });
-
-// ─── Navigation ───────────────────────────────────────────────────────────────
-

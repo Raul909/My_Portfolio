@@ -515,7 +515,7 @@ html {
     transform: translateZ(0);
 }
 
-#ascii-video {
+#ascii-video, #video-editing-ascii {
     display: block;
     width: 100%;
     height: 100%;
@@ -888,13 +888,7 @@ section.in-view {
     transform: translateZ(0);
 }
 
-#video-editing-ascii {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.8;
-}
+
 
 .videos-overlay {
     position: absolute;
