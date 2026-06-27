@@ -231,14 +231,32 @@ class AsciiRenderer {
             scaleFactor = 1.2; // slightly larger characters on mobile, but keep ratio
         }
 
-        const currentFontSize = Math.max(4, Math.round(this.fontSize * scaleFactor));
-        this.charWidth = Math.max(1, currentFontSize * 0.6);
-        this.charHeight = currentFontSize;
+        let currentFontSize = Math.max(4, Math.round(this.fontSize * scaleFactor));
+        let charWidth = Math.max(1, currentFontSize * 0.6);
+        let charHeight = currentFontSize;
+        let cols = Math.floor(width / charWidth);
+        let rows = Math.floor(height / charHeight);
 
+        // Bound the per-frame workload: on large screens a tiny font explodes the
+        // grid (e.g. 5px font → 600+ cols × 200+ rows = 130k+ cells/frame), which
+        // makes even high-end devices drop below 24fps. Scale the font up just
+        // enough to keep total cells within budget so every device can sustain
+        // its target framerate.
+        const MAX_CELLS = 28000;
+        if (cols * rows > MAX_CELLS) {
+            const grow = Math.sqrt((cols * rows) / MAX_CELLS);
+            currentFontSize = Math.max(currentFontSize, Math.ceil(currentFontSize * grow));
+            charWidth = Math.max(1, currentFontSize * 0.6);
+            charHeight = currentFontSize;
+            cols = Math.floor(width / charWidth);
+            rows = Math.floor(height / charHeight);
+        }
+
+        this.charWidth = charWidth;
+        this.charHeight = charHeight;
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-        this.cols = Math.floor(width / this.charWidth);
-        this.rows = Math.floor(height / this.charHeight);
+        this.cols = cols;
+        this.rows = rows;
 
         this.offscreenCanvas.width = this.cols;
         this.offscreenCanvas.height = this.rows;
@@ -482,7 +500,7 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 
 let hardwareTier = 1;
 if (cores >= 8 && memory >= 6) {
-    hardwareTier = isMobile ? 2 : 3;
+    hardwareTier = 3;
 } else if (cores >= 4 && memory >= 4) {
     hardwareTier = 2;
 } else {
@@ -518,15 +536,19 @@ async function detectHardwareTier() {
     score += Math.min(signals.cores / 8, 1) * 25;
     score += Math.min(signals.memory / 8, 1) * 25;
     score += elapsed < 25 ? 50 : elapsed < 60 ? 35 : elapsed < 120 ? 20 : 10;
-    if (signals.isMobile) score *= 0.7;
 
     if (score >= 70) return 3;
     if (score >= 40) return 2;
     return 1;
 }
 
+// Respect users who request reduced motion: skip autoplaying video backgrounds,
+// typing, 3D tilt, and parallax. Static fallbacks remain (gradient overlays, text).
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 // Initialize ASCII video backgrounds after page load
 window.addEventListener('load', () => {
+    if (prefersReducedMotion) return;
     setTimeout(async () => {
         const refined = await detectHardwareTier();
         hardwareTier = refined;
@@ -541,8 +563,8 @@ window.addEventListener('load', () => {
             fps2: 30,
             speed2: 1.0,
             fontSize1: 16,
-            fps1: 24,
-            speed1: 0.8
+            fps1: 30,
+            speed1: 1.0
         });
 
         setTimeout(() => {
@@ -554,8 +576,8 @@ window.addEventListener('load', () => {
                 fps2: 30,
                 speed2: 1.0,
                 fontSize1: 16,
-                fps1: 24,
-                speed1: 0.8,
+                fps1: 30,
+                speed1: 1.0,
                 filter: 'contrast(1.6) saturate(1.8) brightness(1.2)'
             });
         }, 500);
@@ -590,7 +612,9 @@ window.addEventListener('scroll', () => {
             // Hero fade
             const heroContent = document.querySelector('.hero-content');
             if (heroContent && window.scrollY < window.innerHeight) {
-                heroContent.style.transform = `translateY(${window.scrollY * 0.25}px)`;
+                if (!prefersReducedMotion) {
+                    heroContent.style.transform = `translateY(${window.scrollY * 0.25}px)`;
+                }
                 heroContent.style.opacity = 1 - (window.scrollY / window.innerHeight) * 0.9;
             }
             isScrolling = false;
@@ -620,7 +644,11 @@ function type() {
     }
     setTimeout(type, isDeleting ? 50 : 150);
 }
-type();
+if (prefersReducedMotion) {
+    typingText.textContent = phrases[0];
+} else {
+    type();
+}
 
 // ─── Smooth Scroll ────────────────────────────────────────────────────────────
 
@@ -686,6 +714,7 @@ document.querySelectorAll('.section-reveal').forEach(r => sectionObserver.observ
 // ─── 3D Tilt ──────────────────────────────────────────────────────────────────
 
 function add3DTiltEffect() {
+    if (prefersReducedMotion) return;
     document.querySelectorAll('.tilt-card, .project-card, .about-card').forEach(card => {
         let isHovering = false;
         let animationFrameId = null;
@@ -1124,7 +1153,7 @@ function openLightbox(images, startIndex) {
 // ─── Contact Form (Netlify Forms) ─────────────────────────────────────────────
 
 // Real-time email validation
-const emailRegex = /^[^\s@]+@(gmail\.com|yahoo\.com|outlook\.com)$/i;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const emailInput = document.querySelector('input[name="email"]');
 if (emailInput) {
     emailInput.addEventListener('input', (e) => {
@@ -1155,7 +1184,7 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
         return;
     }
     if (!emailRegex.test(email)) {
-        msg.textContent = 'Please enter a valid Gmail, Yahoo, or Outlook address.';
+        msg.textContent = 'Please enter a valid email address.';
         msg.className = 'form-message error';
         return;
     }

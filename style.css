@@ -76,7 +76,6 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     overflow-x: hidden;
-    cursor: none; /* Hide default cursor for custom one */
     opacity: 0;
     animation: fadeInPage 0.6s ease forwards;
 }
@@ -1380,4 +1379,15 @@ footer {
 @media (min-width: 769px) and (max-width: 1024px) {
     .projects-grid { grid-template-columns: repeat(2, 1fr); }
     .gallery-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Respect prefers-reduced-motion: disable non-essential animations/transitions.
+   Content remains fully visible (page fade-in resolves to opaque instantly). */
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
