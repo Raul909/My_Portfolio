@@ -515,7 +515,7 @@ html {
     align-items: center;
 }
 
-#ascii-canvas {
+#ascii-video {
     display: block;
     width: 100%;
     height: 100%;
@@ -888,7 +888,7 @@ section.in-view {
     align-items: center;
 }
 
-#video-editing-canvas {
+#video-editing-ascii {
     display: block;
     width: 100%;
     height: 100%;

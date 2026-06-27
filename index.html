@@ -498,22 +498,15 @@
       <section id="home" class="hero">
         <div id="ascii-bg" aria-hidden="true" role="presentation">
           <video
-            id="hidden-video"
-            src="bg-video.mp4"
+            id="ascii-video"
+            src="bg-video-ascii.mp4"
             loop
             muted
+            autoplay
             playsinline
             preload="metadata"
-            style="
-              position: absolute;
-              width: 1px;
-              height: 1px;
-              opacity: 0;
-              pointer-events: none;
-              z-index: -9999;
-            "
+            class="ascii-video"
           ></video>
-          <canvas id="ascii-canvas"></canvas>
         </div>
         <div class="hero-overlay" aria-hidden="true"></div>
         <div class="hero-content stagger-children">
@@ -862,22 +855,15 @@
       <section id="videos" class="videos">
         <div class="ascii-videos-bg" aria-hidden="true" role="presentation">
           <video
-            id="video-editing-bg-video"
-            src="videos/video_editing_bg_compressed.mp4"
+            id="video-editing-ascii"
+            src="videos/video_editing_bg_ascii.mp4"
             loop
             muted
+            autoplay
             playsinline
             preload="none"
-            style="
-              position: absolute;
-              width: 1px;
-              height: 1px;
-              opacity: 0;
-              pointer-events: none;
-              z-index: -9999;
-            "
+            class="ascii-video"
           ></video>
-          <canvas id="video-editing-canvas"></canvas>
         </div>
         <div class="videos-overlay" aria-hidden="true"></div>
         <div class="container">
