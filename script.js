@@ -1234,6 +1234,12 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 
 // Initialize ASCII video backgrounds after page load
 window.addEventListener('load', () => {
+    const preloader = document.getElementById('preloader');
+    if (preloader) {
+        preloader.classList.add('fade-out');
+        setTimeout(() => preloader.remove(), 500);
+    }
+    
     if (prefersReducedMotion) return;
     setTimeout(async () => {
         const refined = await detectHardwareTier();
