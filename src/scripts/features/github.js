@@ -91,6 +91,7 @@ export async function fetchGitHubRepos(containerId = 'github-projects') {
             `;
             container.appendChild(card);
         });
+        window.dispatchEvent(new CustomEvent('new-cards-added', { detail: { container } }));
     } catch {
         container.innerHTML = `<p class="error-text">Unable to load projects. Visit <a href="https://github.com/Raul909" target="_blank" rel="noopener noreferrer">GitHub →</a></p>`;
     }

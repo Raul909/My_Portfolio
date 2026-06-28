@@ -182,11 +182,18 @@ function observeCards(container = document) {
     });
 }
 
+window.addEventListener('new-cards-added', (e) => {
+    observeCards(/** @type {CustomEvent} */ (e).detail.container);
+    add3DTiltEffect();
+});
+
 // ─── 3D Tilt Effect ────────────────────────────────────────────────────────
 function add3DTiltEffect() {
     if (prefersReducedMotion || hardwareTier === 1) return;
     document.querySelectorAll('.tilt-card, .project-card, .about-card').forEach(card => {
-        const c = /** @type {HTMLElement} */ (card);
+        const c = /** @type {HTMLElement & { dataset: { tiltAdded?: string } }} */ (card);
+        if (c.dataset.tiltAdded) return;
+        c.dataset.tiltAdded = 'true';
         let isHovering = false;
         /** @type {number | null} */
         let animationFrameId = null;
@@ -379,7 +386,11 @@ async function detectHardwareTier() {
     score += Math.min(memory / 8, 1) * 25;
     score += elapsed < 25 ? 50 : elapsed < 60 ? 35 : elapsed < 120 ? 20 : 10;
 
-    return score >= 70 ? 3 : score >= 40 ? 2 : 1;
+    let finalTier = score >= 70 ? 3 : score >= 40 ? 2 : 1;
+    if (isMobile) {
+        finalTier = Math.min(finalTier, 2);
+    }
+    return finalTier;
 }
 
 /**

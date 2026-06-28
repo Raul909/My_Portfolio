@@ -70,6 +70,7 @@ export async function loadYouTubeVideos(containerId = 'youtube-videos') {
     ];
 
     renderVideos(videoIds, container);
+    window.dispatchEvent(new CustomEvent('new-cards-added', { detail: { container } }));
 
     // Auto-scroll ping-pong slider
     let direction = 1;
