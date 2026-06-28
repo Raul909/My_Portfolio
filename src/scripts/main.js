@@ -243,7 +243,7 @@ function type() {
     setTimeout(type, isDeleting ? 50 : 150);
 }
 
-if (prefersReducedMotion || hardwareTier === 1) {
+if (prefersReducedMotion) {
     if (typingText) typingText.textContent = phrases[0];
 } else {
     type();
