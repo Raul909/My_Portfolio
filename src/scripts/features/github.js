@@ -70,11 +70,11 @@ export async function fetchGitHubRepos(containerId = 'github-projects') {
             const card = document.createElement('div');
             card.className = 'project-card';
             card.innerHTML = `
+                ${safePreviewSrc ? `
                 <div class="project-preview">
-                    <img src="${safePreviewSrc}" alt="${safeRepoName} preview" class="project-preview-image"
-                         loading="lazy" width="600" height="340"
-                         style="width: 100%; height: auto; display: ${safePreviewSrc ? 'block' : 'none'}; border-radius: 6px; margin-bottom: 1rem;">
+                    <img src="${safePreviewSrc}" alt="${safeRepoName} preview" class="project-preview-image" loading="lazy" width="600" height="340">
                 </div>
+                ` : ''}
                 <div class="project-content">
                     <h3>${safeRepoName.replace(/[-_]/g, ' ')}</h3>
                     <p>${safeDescription}</p>
