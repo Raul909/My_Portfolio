@@ -3,31 +3,20 @@ import { escapeHTML, sanitizeUrl } from '../utils/security.js';
 const YT_CHANNEL_ID = 'UCjsOF9jvN-39lHfgEnIWEbw';
 const YT_CHANNEL_URL = 'https://www.youtube.com/@sirius_shutterup';
 
-/** @type {Array<(url: string) => string>} */
-const CORS_PROXIES = [
-    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
-];
-
 /** @returns {Promise<string[]>} */
 async function fetchYouTubeFeed() {
-    const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${YT_CHANNEL_ID}`;
-
-    for (const makeProxy of CORS_PROXIES) {
-        try {
-            const res = await fetch(makeProxy(rssUrl), { signal: AbortSignal.timeout(8000) });
-            if (!res.ok) continue;
-            const text = await res.text();
-            const xml = new DOMParser().parseFromString(text, 'text/xml');
-            const ids = [...xml.querySelectorAll('entry')].map(e => {
-                const vid = e.querySelector('videoId');
-                return vid ? vid.textContent.trim() : null;
-            }).filter(Boolean);
-            if (ids.length > 0) return /** @type {string[]} */ (ids);
-        } catch {
-            // try next proxy
-        }
+    try {
+        const res = await fetch('/api/youtube', { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) return [];
+        const text = await res.text();
+        const xml = new DOMParser().parseFromString(text, 'text/xml');
+        const ids = [...xml.querySelectorAll('entry')].map(e => {
+            const vid = e.querySelector('videoId');
+            return vid ? vid.textContent.trim() : null;
+        }).filter(Boolean);
+        if (ids.length > 0) return /** @type {string[]} */ (ids);
+    } catch {
+        // failed to fetch from backend
     }
     return [];
 }

@@ -68,3 +68,33 @@
     font-size: 0.875rem;
     margin: 0;
 }
+
+@media (max-width: 768px) {
+    .achievement-timeline-container { padding: 0.5rem 0; }
+
+    .timeline-line {
+        top: 0;
+        left: 50%;
+        right: auto;
+        width: 1px;
+        height: 100%;
+        background: linear-gradient(180deg, transparent, var(--accent), transparent);
+    }
+
+    .achievement-timeline {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        overflow-x: visible;
+        padding-bottom: 0;
+        scroll-snap-type: none;
+    }
+
+    .achievement-card {
+        width: 100%;
+        flex-shrink: 1;
+        scroll-snap-align: none;
+    }
+
+    .achievement-card:hover { transform: translateY(-4px); }
+}

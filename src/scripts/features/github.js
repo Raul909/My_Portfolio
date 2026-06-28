@@ -29,7 +29,7 @@ export async function fetchGitHubRepos(containerId = 'github-projects') {
         }
 
         if (!repos) {
-            const res = await fetch('https://api.github.com/users/Raul909/repos?sort=updated&per_page=12');
+            const res = await fetch('/api/github');
             if (!res.ok) throw new Error('GitHub API error');
             repos = /** @type {Array<any>} */ (await res.json());
 

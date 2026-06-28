@@ -61,6 +61,11 @@
     transition: border-color 0.2s ease;
 }
 
+.contact-form textarea {
+    resize: vertical;
+    max-height: 300px;
+}
+
 .contact-form input::placeholder,
 .contact-form textarea::placeholder {
     color: rgba(248, 250, 252, 0.3);
@@ -95,6 +100,16 @@
     display: block;
 }
 
+@media (hover: none) {
+    .social-btn:hover { transform: none; }
+}
+
 @media (max-width: 768px) {
     .contact-content { grid-template-columns: 1fr; gap: 2rem; }
+}
+
+@media (max-width: 480px) {
+    .contact-form input,
+    .contact-form textarea { padding: 0.75rem; font-size: 1rem; }
+    .social-btn { padding: 0.75rem; font-size: 0.9rem; }
 }

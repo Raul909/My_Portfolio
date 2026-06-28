@@ -95,4 +95,13 @@
 
 @media (max-width: 768px) {
     .about-grid { grid-template-columns: 1fr; gap: 1.25rem; }
+    .achievements-block { margin-top: 2rem; padding: 1.5rem; }
+}
+
+@media (max-width: 480px) {
+    .about-card { padding: 1.5rem; }
+    .about-card h3 { font-size: 1.2rem; }
+    .about-card p { font-size: 0.9rem; }
+    .achievements-block { padding: 1.25rem; }
+    .achievements-block h3 { font-size: 1.1rem; }
 }

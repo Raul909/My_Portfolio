@@ -158,7 +158,11 @@ export class AsciiRenderer {
         if (!this.canvas || !this.ctx || !this.offscreenCtx) return;
         const width = this.canvas.offsetWidth;
         const height = this.canvas.offsetHeight;
-        if (!width || !height) return;
+        if (!width || !height || width < 50 || height < 50) {
+            this.cols = 0;
+            this.rows = 0;
+            return;
+        }
 
         this.updateBounds();
         const dpr = window.devicePixelRatio || 1;
@@ -290,6 +294,7 @@ export class AsciiRenderer {
      */
     renderFrame(time) {
         if (!this.isRendering || !this.video || !this.canvas || !this.ctx || !this.offscreenCtx) return;
+        if (this.cols < 1 || this.rows < 1) return;
 
         if (this.mouseDistortion) {
             this.mouseX += (this.targetMouseX - this.mouseX) * 0.15;

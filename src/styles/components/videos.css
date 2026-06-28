@@ -59,7 +59,8 @@
 .video-card {
     position: relative;
     min-width: 300px;
-    height: 170px;
+    flex: 1;
+    aspect-ratio: 16 / 9;
     border-radius: 12px;
     overflow: hidden;
     background: var(--surface);
@@ -104,3 +105,29 @@
 }
 
 .video-card:hover .video-play-overlay svg { transform: scale(1.1); }
+
+@media (max-width: 1024px) {
+    .videos { padding-top: 6rem; padding-bottom: 6rem; }
+}
+
+@media (max-width: 768px) {
+    .videos { padding-top: 4rem; padding-bottom: 4rem; }
+
+    .videos-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        overflow-x: visible;
+        padding: 0;
+    }
+
+    .video-card {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .videos { padding-top: 3rem; padding-bottom: 3rem; }
+    .video-header { margin-bottom: 1.5rem; }
+}
