@@ -1,0 +1,98 @@
+.about-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+}
+
+.about-card {
+    background: var(--surface);
+    padding: 2.5rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+    cursor: default;
+    transform-style: preserve-3d;
+}
+
+.about-card:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-active);
+    box-shadow: 0 16px 48px rgba(0, 212, 255, 0.1);
+}
+
+.about-card .icon {
+    margin-bottom: 1.25rem;
+    display: block;
+}
+
+.about-card .icon .about-icon {
+    width: 48px;
+    height: 48px;
+}
+
+.about-card h3 {
+    font-size: 1.4rem;
+    margin-bottom: 0.75rem;
+    font-weight: 700;
+    color: var(--light);
+}
+
+.about-card p {
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.achievements-block {
+    margin-top: 3rem;
+    padding: 2rem;
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+}
+
+.achievements-block h3 {
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.achievements-icon {
+    width: 28px;
+    height: 28px;
+}
+
+.tilt-card {
+    position: relative;
+    padding: 2rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, rgba(14,14,20,0.8) 0%, rgba(7,7,12,0.9) 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    overflow: hidden;
+    transform: perspective(1000px);
+    transition: transform 0.1s ease-out;
+}
+
+.tilt-card:hover { z-index: 10; }
+
+.card-glow {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), var(--accent-dim) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.tilt-card:hover .card-glow { opacity: 1; }
+
+.tilt-card > * { position: relative; z-index: 1; }
+
+@media (max-width: 768px) {
+    .about-grid { grid-template-columns: 1fr; gap: 1.25rem; }
+}

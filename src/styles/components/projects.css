@@ -1,0 +1,117 @@
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2rem;
+}
+
+.project-card {
+    background: var(--surface);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+    overflow: hidden;
+    transform-style: preserve-3d;
+}
+
+.project-card:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-active);
+    box-shadow: 0 16px 48px rgba(0, 212, 255, 0.1);
+}
+
+.project-preview {
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.project-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.project-card:hover .project-preview img { transform: scale(1.05); }
+
+.project-content { padding: 1.5rem; }
+
+.project-card h3 {
+    color: var(--light);
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.project-card p {
+    color: var(--muted);
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.project-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1.25rem;
+}
+
+.tag {
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 0.2rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.project-links {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.project-links a {
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.45rem 1rem;
+    border-radius: 7px;
+    transition: all 0.2s ease;
+}
+
+.project-links .code-link {
+    color: var(--accent);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.project-links .code-link:hover {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--light);
+}
+
+.project-links .live-demo-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: 1px solid transparent;
+    font-weight: 700;
+}
+
+.project-links .live-demo-btn:hover {
+    background: var(--accent-dark);
+    box-shadow: 0 4px 14px rgba(0, 212, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+    .projects-grid { grid-template-columns: 1fr; gap: 1.25rem; }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .projects-grid { grid-template-columns: repeat(2, 1fr); }
+}

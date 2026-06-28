@@ -1,0 +1,106 @@
+.videos {
+    position: relative;
+    overflow: hidden;
+    padding-top: 8rem;
+    padding-bottom: 8rem;
+}
+
+.ascii-videos-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+    background: var(--bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transform: translateZ(0);
+}
+
+.videos-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg) 5%, var(--bg-transparent) 30%, var(--bg-transparent) 70%, var(--bg) 95%, var(--bg) 100%);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.videos .container { position: relative; z-index: 2; }
+
+.video-header, .gallery-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--muted);
+}
+
+.video-header a, .gallery-header a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.video-header a:hover, .gallery-header a:hover { color: var(--light); }
+
+.videos-grid {
+    display: flex;
+    gap: 1.25rem;
+    overflow-x: auto;
+    padding: 0.5rem 0 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) rgba(255, 255, 255, 0.05);
+}
+
+.videos-grid::-webkit-scrollbar { display: none; }
+.videos-grid { -ms-overflow-style: none; scrollbar-width: none; }
+
+.video-card {
+    position: relative;
+    min-width: 300px;
+    height: 170px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    display: block;
+    text-decoration: none;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.video-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease;
+}
+
+.video-card:hover {
+    border-color: var(--border-active);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+    transform: translateY(-3px);
+}
+
+.video-card:hover img { transform: scale(1.04); }
+
+.video-play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.25);
+    transition: background 0.25s ease;
+}
+
+.video-card:hover .video-play-overlay { background: rgba(0, 0, 0, 0.4); }
+
+.video-play-overlay svg {
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+    transition: transform 0.25s ease;
+}
+
+.video-card:hover .video-play-overlay svg { transform: scale(1.1); }

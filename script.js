@@ -1,14 +1,3 @@
-// ─── Async Font Loading ───────────────────────────────────────────────────────
-// Inject the Google Fonts stylesheet after first paint so it stays off the
-// critical render path (CSP forbids inline onload handlers, so do it via JS).
-// The <link rel="preload"> in <head> already warms the fetch; this applies it.
-(function () {
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = 'https://fonts.googleapis.com/css2?family=Rock+Salt&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap';
-    document.head.appendChild(l);
-})();
-
 // ─── Security Helpers ─────────────────────────────────────────────────────────
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -87,7 +76,7 @@ window.addEventListener('scroll', () => {
             // Hero fade
             const heroContent = document.querySelector('.hero-content');
             if (heroContent && window.scrollY < window.innerHeight) {
-                if (!prefersReducedMotion) {
+                if (!prefersReducedMotion && hardwareTier > 1) {
                     heroContent.style.transform = `translateY(${window.scrollY * 0.25}px)`;
                 }
                 heroContent.style.opacity = 1 - (window.scrollY / window.innerHeight) * 0.9;
@@ -119,7 +108,7 @@ function type() {
     }
     setTimeout(type, isDeleting ? 50 : 150);
 }
-if (prefersReducedMotion) {
+if (prefersReducedMotion || hardwareTier === 1) {
     typingText.textContent = phrases[0];
 } else {
     type();
@@ -190,6 +179,7 @@ document.querySelectorAll('.section-reveal').forEach(r => sectionObserver.observ
 
 function add3DTiltEffect() {
     if (prefersReducedMotion) return;
+    if (hardwareTier === 1) return;
     document.querySelectorAll('.tilt-card, .project-card, .about-card').forEach(card => {
         let isHovering = false;
         let animationFrameId = null;
@@ -247,6 +237,13 @@ const animObserver = new IntersectionObserver((entries) => {
 }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
 
 function observeCards(container = document) {
+    if (hardwareTier === 1) {
+        container.querySelectorAll('.about-card, .project-card, .video-card, .gallery-item').forEach(el => {
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+        });
+        return;
+    }
     container.querySelectorAll('.about-card, .project-card, .video-card, .gallery-item').forEach(el => {
         if (el.dataset.observed) return;
         el.dataset.observed = 'true';
@@ -1158,34 +1155,40 @@ class AsciiRenderer {
         this.cachedAsciiItems = items;
         this.cachedOffscreenData = new Uint8ClampedArray(imageData.data);
     }
+
+    updateTier(newTier, config) {
+        this.tier = newTier;
+        this.fontSize = config.fontSize || 18;
+        this.targetFPS = config.fps || 12;
+        this.video.playbackRate = config.playbackRate || 0.8;
+        this.filter = config.filter || 'none';
+        this.fpsInterval = 1000 / this.targetFPS;
+        this.handleResize();
+    }
 }
 
 // ─── Tier Detection ──────────────────────────────────────────────────────────
 
-// Static detection for immediate CSS class
+const TIER_CONFIG = {
+    1: { ascii: { fontSize: 18, fps: 12, maxCells: 5000, playbackRate: 0.8, mouseDistortion: false, filter: 'none' } },
+    2: { ascii: { fontSize: 12, fps: 24, maxCells: 10000, playbackRate: 1.0, mouseDistortion: true, filter: 'none' } },
+    3: { ascii: { fontSize: 6, fps: 30, maxCells: 15000, playbackRate: 1.2, mouseDistortion: true, filter: 'contrast(1.6) saturate(1.8) brightness(1.2)' } }
+};
+
 const cores = navigator.hardwareConcurrency || 4;
 const memory = navigator.deviceMemory || 4;
-const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+const isMobile = /Mobi|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
 
 let hardwareTier = 1;
-if (cores >= 8 && memory >= 6) {
+if (cores >= 8 && memory >= 8 && !isMobile) {
     hardwareTier = 3;
 } else if (cores >= 4 && memory >= 4) {
     hardwareTier = 2;
-} else {
-    hardwareTier = 1;
 }
 
 document.documentElement.classList.add(`tier-${hardwareTier}`);
 
-// Async runtime benchmark for refined tier detection
 async function detectHardwareTier() {
-    const signals = {
-        cores: navigator.hardwareConcurrency || 4,
-        memory: navigator.deviceMemory || 4,
-        isMobile: /Mobi|Android/i.test(navigator.userAgent)
-    };
-
     const bc = document.createElement('canvas');
     bc.width = 200; bc.height = 100;
     const bctx = bc.getContext('2d');
@@ -1202,17 +1205,19 @@ async function detectHardwareTier() {
     const elapsed = performance.now() - start;
 
     let score = 0;
-    score += Math.min(signals.cores / 8, 1) * 25;
-    score += Math.min(signals.memory / 8, 1) * 25;
+    score += Math.min(cores / 8, 1) * 25;
+    score += Math.min(memory / 8, 1) * 25;
     score += elapsed < 25 ? 50 : elapsed < 60 ? 35 : elapsed < 120 ? 20 : 10;
 
-    if (score >= 70) return 3;
-    if (score >= 40) return 2;
-    return 1;
+    return score >= 70 ? 3 : score >= 40 ? 2 : 1;
 }
 
-// Respect users who request reduced motion: skip autoplaying video backgrounds,
-// typing, 3D tilt, and parallax. Static fallbacks remain (gradient overlays, text).
+function applyTier(tier) {
+    hardwareTier = tier;
+    document.documentElement.classList.remove('tier-1', 'tier-2', 'tier-3');
+    document.documentElement.classList.add(`tier-${tier}`);
+    window.dispatchEvent(new CustomEvent('tier-change', { detail: { tier } }));
+}
 
 // Initialize ASCII video backgrounds after page load
 window.addEventListener('load', () => {
@@ -1221,39 +1226,17 @@ window.addEventListener('load', () => {
         preloader.classList.add('fade-out');
         setTimeout(() => preloader.remove(), 500);
     }
-    
-    if (prefersReducedMotion) return;
-    setTimeout(async () => {
-        const refined = await detectHardwareTier();
-        hardwareTier = refined;
-        document.documentElement.classList.remove('tier-1', 'tier-2', 'tier-3');
-        document.documentElement.classList.add(`tier-${refined}`);
 
-        new AsciiRenderer('bg-video-source', 'ascii-video', 'home', refined, {
-            fontSize3: 5,
-            fps3: 30,
-            speed3: 1.2,
-            fontSize2: 10,
-            fps2: 30,
-            speed2: 1.0,
-            fontSize1: 16,
-            fps1: 30,
-            speed1: 1.0
-        });
+    if (prefersReducedMotion) return;
+
+    requestIdleCallback(async () => {
+        const refined = await detectHardwareTier();
+        applyTier(refined);
+
+        new AsciiRenderer('bg-video-source', 'ascii-video', 'home', refined, TIER_CONFIG[refined].ascii);
 
         setTimeout(() => {
-            new AsciiRenderer('video-editing-source', 'video-editing-ascii', 'videos', refined, {
-                fontSize3: 5,
-                fps3: 30,
-                speed3: 1.2,
-                fontSize2: 10,
-                fps2: 30,
-                speed2: 1.0,
-                fontSize1: 16,
-                fps1: 30,
-                speed1: 1.0,
-                filter: 'contrast(1.6) saturate(1.8) brightness(1.2)'
-            });
+            new AsciiRenderer('video-editing-source', 'video-editing-ascii', 'videos', refined, TIER_CONFIG[refined].ascii);
         }, 500);
-    }, 200);
+    }, { timeout: 1000 });
 });

@@ -16,7 +16,8 @@ Thumbs.db
 .env
 .env.local
 
-# Build outputs (generated during Netlify deploy)
+# Build outputs
+dist/
 style.min.css
 script.min.js
 node_modules/
@@ -31,3 +32,18 @@ preview.sh
 old_script.js
 jbmono.zip
 lh-audit.json
+
+# Better Code Review Graph - Knowledge Graph Database
+.crg.db
+*.crg.db
+*.crg.db.*
+*.pre-2.0.bak
+*.post-2.0.archived
+
+# Agent instruction files
+AGENTS.md
+
+# Temp files
+hero.mp4
+/old_script.js
+.commandcode/

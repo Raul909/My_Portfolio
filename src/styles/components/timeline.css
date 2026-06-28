@@ -1,0 +1,70 @@
+.achievement-timeline-container {
+    position: relative;
+    padding: 1rem 0;
+}
+
+.timeline-line {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.3;
+    z-index: 0;
+}
+
+.achievement-timeline {
+    display: flex;
+    gap: 2rem;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+}
+
+.achievement-timeline::-webkit-scrollbar { display: none; }
+
+.achievement-card {
+    flex-shrink: 0;
+    width: 280px;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    background: rgba(14,14,20,0.6);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    scroll-snap-align: center;
+    position: relative;
+    z-index: 1;
+    transition: transform 0.3s ease;
+}
+
+.achievement-card:hover { transform: translateY(-8px); }
+
+.ach-icon {
+    display: inline-block;
+    background: var(--accent-dim);
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 1rem;
+}
+
+.ach-year {
+    display: block;
+    color: var(--accent);
+    font-size: 0.875rem;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 0.5rem;
+}
+
+.achievement-card h4 {
+    color: #F0F0F5;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.achievement-card p {
+    color: #8A8A95;
+    font-size: 0.875rem;
+    margin: 0;
+}

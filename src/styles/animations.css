@@ -1,0 +1,93 @@
+/* ─── Keyframes ─────────────────────────────────────────────────────── */
+@keyframes fadeInPage { to { opacity: 1; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes lb-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+/* ─── Section Reveal ────────────────────────────────────────────────── */
+.section-reveal {
+    opacity: 0;
+    transform: translateY(60px);
+    transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.section-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ─── Stagger Children ───────────────────────────────────────────────── */
+.stagger-children > * {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.in-view .stagger-children > * {
+    animation: staggerFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.in-view .stagger-children > *:nth-child(1) { animation-delay: 0.1s; }
+.in-view .stagger-children > *:nth-child(2) { animation-delay: 0.2s; }
+.in-view .stagger-children > *:nth-child(3) { animation-delay: 0.3s; }
+.in-view .stagger-children > *:nth-child(4) { animation-delay: 0.4s; }
+.in-view .stagger-children > *:nth-child(5) { animation-delay: 0.5s; }
+
+@keyframes staggerFade {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ─── Reduced Motion ─────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ─── Tier 1 Fallbacks ───────────────────────────────────────────────── */
+.tier-1 .achievement-card {
+    background: rgba(14, 14, 20, 0.95) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.tier-1 #navbar.scrolled {
+    background: rgba(14, 14, 20, 0.98) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.tier-1 .light-theme #navbar.scrolled {
+    background: rgba(255, 255, 255, 0.98) !important;
+}
+
+.tier-1 .nav-links {
+    background: rgb(8, 8, 8) !important;
+    backdrop-filter: none !important;
+}
+
+.tier-1 .light-theme .nav-links {
+    background: rgb(255, 255, 255) !important;
+}
+
+.tier-1 .tilt-card {
+    transform: none !important;
+    transition: none !important;
+}
+
+.tier-1 .card-glow { display: none !important; }
+.tier-1 .section-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+.tier-1 .stagger-title span { opacity: 1 !important; transform: none !important; }
+
+.tier-1 .stagger-children > * {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+}

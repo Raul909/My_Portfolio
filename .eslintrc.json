@@ -1,0 +1,31 @@
+{
+    "env": {
+        "browser": true,
+        "es2022": true
+    },
+    "parserOptions": {
+        "ecmaVersion": 2022,
+        "sourceType": "module"
+    },
+    "extends": ["eslint:recommended"],
+    "rules": {
+        "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+        "no-console": "off",
+        "semi": ["error", "always"],
+        "quotes": ["error", "single"],
+        "indent": ["error", 4],
+        "comma-dangle": ["error", "never"]
+    },
+    "globals": {
+        "requestAnimationFrame": "readonly",
+        "cancelAnimationFrame": "readonly",
+        "IntersectionObserver": "readonly",
+        "ResizeObserver": "readonly",
+        "Image": "readonly",
+        "DOMParser": "readonly",
+        "performance": "readonly",
+        "navigator": "readonly",
+        "window": "readonly",
+        "document": "readonly"
+    }
+}

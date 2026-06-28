@@ -1,0 +1,79 @@
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 300 700;
+    font-display: swap;
+    src: url('/fonts/inter.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 400 600;
+    font-display: swap;
+    src: url('/fonts/jetbrains-mono.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Rock Salt';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/rock-salt.woff2') format('woff2');
+}
+
+:root {
+    --bg: #0A0A0F;
+    --bg-transparent: rgba(10, 10, 15, 0);
+    --bg-card: rgba(18, 18, 26, 0.7);
+    --text-primary: #F8F9FA;
+    --text-secondary: #A1A1AA;
+    --accent: #FF6B35;
+    --accent-dark: #cc562a;
+    --accent-secondary: #00D4AA;
+    --accent-tertiary: #6366F1;
+    --accent-dim: rgba(255, 107, 53, 0.12);
+    --surface: rgba(255, 255, 255, 0.04);
+    --surface-hover: rgba(255, 255, 255, 0.07);
+    --border: rgba(255, 255, 255, 0.06);
+    --border-active: rgba(255, 107, 53, 0.5);
+    --light: #F8F9FA;
+    --muted: #888888;
+    --gradient: linear-gradient(135deg, var(--accent) 0%, var(--accent-tertiary) 100%);
+    --title-primary: #F0F0F5;
+    --title-accent: #E85D3F;
+}
+
+.light-theme {
+    --bg: #f8f9fa;
+    --bg-transparent: rgba(248, 249, 250, 0);
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --text-primary: #121212;
+    --text-secondary: #555555;
+    --accent: #008eb3;
+    --accent-dark: #006b8c;
+    --accent-dim: rgba(0, 142, 179, 0.12);
+    --surface: rgba(0, 0, 0, 0.04);
+    --surface-hover: rgba(0, 0, 0, 0.08);
+    --border: rgba(0, 0, 0, 0.1);
+    --border-active: rgba(0, 142, 179, 0.5);
+    --light: #121212;
+    --muted: rgba(18, 18, 18, 0.6);
+    --title-primary: #1A1A24;
+    --title-accent: #008eb3;
+}
+
+.glass-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.gradient-text {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}

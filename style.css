@@ -1,3 +1,27 @@
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 300 700;
+    font-display: swap;
+    src: url('/fonts/inter.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 400 600;
+    font-display: swap;
+    src: url('/fonts/jetbrains-mono.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Rock Salt';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/rock-salt.woff2') format('woff2');
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -66,6 +90,27 @@
 }
 .tier-1 .light-theme #navbar.scrolled {
     background: rgba(255, 255, 255, 0.98) !important;
+}
+.tier-1 .tilt-card {
+    transform: none !important;
+    transition: none !important;
+}
+.tier-1 .card-glow {
+    display: none !important;
+}
+.tier-1 .section-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+}
+.tier-1 .stagger-title span {
+    opacity: 1 !important;
+    transform: none !important;
+}
+.tier-1 .stagger-children > * {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
 }
 
 html { scroll-behavior: smooth; }
