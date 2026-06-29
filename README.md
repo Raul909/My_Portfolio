@@ -2,7 +2,7 @@
 
 Personal portfolio — developer, video editor, photographer.
 
-🌐 **Live:** [raul909portfolio.netlify.app](https://raul909portfolio.netlify.app/)
+🌐 **Live:** [raul909portfolio.netlify.app](https://rahul-biswas-portfolio.pages.dev/)
 
 ---
 
